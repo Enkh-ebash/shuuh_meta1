@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ховд-457 — Шүүхийн шийдвэр гүйцэтгэх газар</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <img class="seal-img" src="assets/emblem.svg" alt="Сүлд">
+  <div class="topbar-text">
+    <div class="t1">Ховд Аймаг Дахь Шүүхийн Шийдвэр Гүйцэтгэх Газар</div>
+    <div class="t2">Шүүхийн Шийдвэр Гүйцэтгэх Ерөнхий Газар — Засгийн газрын хэрэгжүүлэгч агентлаг</div>
+  </div>
+  <div class="topbar-right">
+    <span class="chip hidden" id="userChip"></span>
+    <button class="btn-ghost hidden" id="adminBtn">Admin</button>
+    <button class="btn-ghost hidden" id="logoutBtn">Гарах</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- REGISTRATION GATE -->
+  <div id="gateView" class="gate card">
+    <h1>Тавтай морил</h1>
+    <p>Үйлчилгээ авахын тулд эхлээд бүртгүүлнэ үү.</p>
+    <label>Овог</label>
+    <input id="regOvog" placeholder="Жишээ: Отгонбаяр">
+    <label>Нэр</label>
+    <input id="regNer" placeholder="Жишээ: Энхманлай">
+    <label>Регистрийн дугаар</label>
+    <input id="regRegister" placeholder="АБ12345678" class="mono">
+    <label>Утасны дугаар</label>
+    <input id="regPhone" placeholder="99112233" class="mono" maxlength="8">
+    <button class="btn-primary" id="regSubmit">Бүртгүүлэх / Нэвтрэх</button>
+    <div class="err" id="regErr"></div>
+    <div class="hint">Аль хэдийн бүртгэлтэй бол ижил регистрийн дугаар, утасны дугаараа оруулаад нэвтэрнэ.</div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashView" class="hidden">
+    <div class="hero">
+      <div class="eyebrow">Иргэний үйлчилгээ</div>
+      <h1>Сайн байна уу, <span id="dashName"></span></h1>
+      <p>Доорх зургаан цэснээс хэрэгтэй үйлчилгээгээ сонгоно уу.</p>
+    </div>
+    <div class="grid6">
+      <div class="tile" data-go="intro"><span class="num">1</span><div class="name">Танилцуулга</div><div class="desc">Байгууллагын үйл ажиллагаа, чиг үүрэг</div></div>
+      <div class="tile" data-go="feedback"><span class="num">2</span><div class="name">Санал хүсэлт</div><div class="desc">Санал, гомдол, хүсэлт илгээх</div></div>
+      <div class="tile" data-go="longqueue"><span class="num">3</span><div class="name">Урт хугцааны эргэлт</div><div class="desc">72 цагийн ээлжийн бүртгэл</div></div>
+      <div class="tile" data-go="simplequeue"><span class="num">4</span><div class="name">Энгийн эргэлт</div><div class="desc">Өдрийн энгийн ээлжийн бүртгэл</div></div>
+      <div class="tile" data-go="news"><span class="num">5</span><div class="name">Мэдээ мэдээлэл</div><div class="desc">Сүүлийн үеийн мэдээ</div></div>
+      <div class="tile" data-go="calendar"><span class="num">6</span><div class="name">Он сар календарь</div><div class="desc">Ажлын хуваарь, эргэлтийн өдрүүд</div></div>
+    </div>
+  </div>
+
+  <!-- INTRO -->
+  <div id="introView" class="hidden">
+    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Танилцуулга</h2></div>
+    <div class="card">
+      <p style="font-size:14px;line-height:1.7;color:var(--ink-soft)">
+      Ховд аймаг дахь Шүүхийн шийдвэр гүйцэтгэх газар нь Шүүхийн шийдвэр гүйцэтгэх ерөнхий газрын харьяа нэгж бөгөөд
+      шүүхийн шийдвэр гүйцэтгэх ажиллагааг хуулийн дагуу, шуурхай, ил тод явуулах үүрэгтэй.
+      Иргэд энэхүү порталаар дамжуулан цаг захиалах, санал хүсэлтээ илгээх, мэдээ мэдээлэлтэй танилцах боломжтой.
+      Дэлгэрэнгүй мэдээллийг байгууллагын байранд эсвэл лавлах утсаар авна уу.</p>
+    </div>
+  </div>
+
+  <!-- FEEDBACK -->
+  <div id="feedbackView" class="hidden">
+    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Санал хүсэлт</h2></div>
+    <div class="card">
+      <label>Гарчиг</label>
+      <input id="fbTitle" placeholder="Товч гарчиг">
+      <label>Санал хүсэлтийн агуулга</label>
+      <textarea id="fbBody" rows="5" placeholder="Дэлгэрэнгүй бичнэ үү..."></textarea>
+      <button class="btn-primary" id="fbSubmit">Илгээх</button>
+      <div class="err" id="fbErr"></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="section-head" style="margin-bottom:10px"><h2 style="font-size:15px">Миний илгээсэн хүсэлтүүд</h2></div>
+      <div id="myFeedbackList"></div>
+    </div>
+  </div>
+
+  <!-- LONG QUEUE -->
+  <div id="longqueueView" class="hidden">
+    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Урт хугцааны эргэлт</h2></div>
+    <div class="card">
+      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Огноо сонгоод цаг захиална уу. Нэг ээлжинд дээд тал нь 3 хүн бүртгүүлж болно. 3 хүн дүүрмэгц тухайн ээлж 72 цагийн турш идэвхгүй болно, дараа нь дараагийн ээлж автоматаар нээгдэнэ.</p>
+      <label>Огноо сонгох</label>
+      <input type="date" id="lqDate">
+      <button class="btn-primary" id="lqLoad" style="margin-top:12px">Харах</button>
+    </div>
+    <div id="lqResult" style="margin-top:16px"></div>
+  </div>
+
+  <!-- SIMPLE QUEUE -->
+  <div id="simplequeueView" class="hidden">
+    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Энгийн эргэлт</h2></div>
+    <div class="card">
+      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Өдрийн энгийн ээлжинд бүртгүүлнэ. Хугцааны хязгаарлалтгүй, дараалсан бүртгэл.</p>
+      <label>Огноо сонгох</label>
+      <input type="date" id="sqDate">
+      <button class="btn-primary" id="sqLoad" style="margin-top:12px">Харах</button>
+    </div>
+    <div id="sqResult" style="margin-top:16px"></div>
+  </div>
+
+  <!-- NEWS -->
+  <div id="newsView" class="hidden">
+    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Мэдээ мэдээлэл</h2></div>
+    <div class="card" id="newsList"></div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div id="calendarView" class="hidden">
+    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Он сар календарь</h2></div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <button class="back" id="calPrev">←</button>
+        <div class="font-display" id="calLabel" style="font-weight:600;color:var(--navy)"></div>
+        <button class="back" id="calNext">→</button>
+      </div>
+      <div class="cal-grid" id="calDow"></div>
+      <div class="cal-grid" id="calGrid" style="margin-top:6px"></div>
+      <div class="hint" style="margin-top:10px">● улаан цэгтэй өдөр = урт хугцааны эргэлтэд одоогоор дүүрсэн огноо</div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="adminView" class="hidden">
+    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Admin — Удирдлагын самбар</h2></div>
+    <div id="adminGate" class="card" style="max-width:380px">
+      <label>Нэвтрэх нэр</label>
+      <input id="adminUser" placeholder="admin">
+      <label>Нууц үг</label>
+      <input type="password" id="adminPass" placeholder="••••••">
+      <button class="btn-primary" id="adminEnter">Нэвтрэх</button>
+      <div class="err" id="adminErr"></div>
+    </div>
+    <div id="adminPanel" class="hidden">
+      <div class="tab-row">
+        <button class="tab active" data-tab="users">Бүртгэлтэй иргэд</button>
+        <button class="tab" data-tab="lq">Урт хугцааны эргэлт</button>
+        <button class="tab" data-tab="sq">Энгийн эргэлт</button>
+        <button class="tab" data-tab="fb">Санал хүсэлт</button>
+        <button class="tab" data-tab="news">Мэдээ нэмэх</button>
+      </div>
+      <div class="card" id="adminContent"></div>
+    </div>
+  </div>
+
+  <div class="foot-note">© Ховд аймаг дахь Шүүхийн шийдвэр гүйцэтгэх газар — 457</div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
