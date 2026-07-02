@@ -100,3 +100,13 @@ td{padding:9px 10px;border-bottom:1px solid var(--line);}
 tr:hover td{background:var(--paper);}
 .empty{color:var(--ink-soft);font-size:13px;padding:24px 0;text-align:center;}
 .foot-note{margin-top:30px;font-size:11.5px;color:var(--ink-soft);text-align:center;line-height:1.6;}
+
+.about-wrap{margin-top:4px;}
+.about-head{font-family:'Lora',serif;color:var(--navy);font-weight:700;font-size:16px;margin-bottom:10px;}
+.about-grid{display:grid;grid-template-columns:1fr;gap:10px;}
+@media(min-width:720px){.about-grid{grid-template-columns:repeat(2,1fr);}}
+.about-grid .k{font-size:11.5px;color:var(--ink-soft);font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;}
+.about-grid .v{font-size:13px;color:var(--ink);font-weight:600;line-height:1.35;}
+.about-grid{background:var(--paper-dim);border:1px solid var(--line);padding:14px 14px;border-radius:12px;}
+.about-grid .mono{font-size:12.5px;}
+

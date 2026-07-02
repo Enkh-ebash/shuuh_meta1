@@ -9,6 +9,8 @@ const queueRoutes = require('./routes/queue');
 const feedbackRoutes = require('./routes/feedback');
 const newsRoutes = require('./routes/news');
 const adminRoutes = require('./routes/admin');
+const aboutRoutes = require('./routes/about');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,7 +28,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/queue', queueRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/news', newsRoutes);
+app.use('/api/about', aboutRoutes);
 app.use('/api/admin', adminRoutes);
+
 
 // Serve the built frontend (static files) in production.
 const FRONTEND_DIR = path.join(__dirname, '..', '..', 'frontend');

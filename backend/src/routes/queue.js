@@ -92,12 +92,23 @@ router.post('/simple/:date', requireAuth, (req, res) => {
 router.get('/long-status/:yearMonth', requireAuth, (req, res) => {
   const { yearMonth } = req.params; // e.g. "2026-07"
   if (!/^\d{4}-\d{2}$/.test(yearMonth)) return res.status(400).json({ error: 'Огноо буруу байна.' });
+  // Collect only dates that have any long_queue rows in this month.
+  // Then mark a date red if the currently-active wave is "full" at this moment.
+  // IMPORTANT: When a wave is full, it becomes unlockable only when Date.now() >= lockedUntil.
   const dates = db
-    .prepare("SELECT DISTINCT date FROM long_queue WHERE date LIKE ?")
-    .all(`${yearMonth}-%`)
+    .prepare('SELECT DISTINCT date FROM long_queue WHERE date LIKE ?')
+    .all(`${yearMonth}-%`) // e.g. "2026-07-%"
     .map((r) => r.date);
-  const fullDates = dates.filter((d) => getCurrentLongWave(d).status === 'full');
+
+  const fullDates = dates
+    .map((d) => {
+      const info = getCurrentLongWave(d);
+      return info.status === 'full' ? d : null;
+    })
+    .filter(Boolean);
+
   res.json({ fullDates });
+
 });
 
 module.exports = router;

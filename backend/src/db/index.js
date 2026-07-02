@@ -78,6 +78,29 @@ CREATE TABLE IF NOT EXISTS news (
 
 CREATE INDEX IF NOT EXISTS idx_long_queue_date ON long_queue(date);
 CREATE INDEX IF NOT EXISTS idx_simple_queue_date ON simple_queue(date);
+
+-- Organization info shown in the intro page.
+CREATE TABLE IF NOT EXISTS about_info (
+  id INTEGER PRIMARY KEY,
+  phone TEXT,
+  email TEXT,
+  address TEXT,
+  social TEXT,
+  org_type TEXT,
+  register_no TEXT,
+  founded_at TEXT,
+  tax_id TEXT,
+  activity_code TEXT,
+  activity_main TEXT,
+  is_branch INTEGER DEFAULT 0,
+  parent_org TEXT,
+  org_full_address TEXT,
+  responsibilities TEXT,
+  budget_admin TEXT,
+  accountant TEXT,
+  created_at INTEGER NOT NULL
+);
 `);
+
 
 module.exports = db;

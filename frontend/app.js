@@ -55,7 +55,9 @@ function enterDashboard() {
   $('#logoutBtn').classList.remove('hidden');
   $('#dashName').textContent = currentUser.ner;
   showView('dash');
+  loadAboutInfo();
 }
+
 
 // ---------- registration / login ----------
 $('#regSubmit').addEventListener('click', async () => {
@@ -213,8 +215,52 @@ async function renderSimpleQueue(date) {
 }
 renderSimpleQueue(todayISO());
 
+// ---------- about (organization info) ----------
+function formatAboutValue(v) {
+  if (v === null || v === undefined) return '';
+  return String(v);
+}
+
+function buildAboutHtml(d) {
+  const items = [
+    d.org_type ? ` <div class="k">Байгууллагын төрөл</div><div class="v">${escapeHtml(d.org_type)}</div>` : '',
+    d.register_no ? ` <div class="k">Байгууллагын регистрийн дугаар</div><div class="v mono">${escapeHtml(d.register_no)}</div>` : '',
+    d.founded_at ? ` <div class="k">Анх үүсгэн байгуулагдсан огноо</div><div class="v">${escapeHtml(d.founded_at)}</div>` : '',
+    d.tax_id ? ` <div class="k">Татвар төлөгчийн дугаар</div><div class="v mono">${escapeHtml(d.tax_id)}</div>` : '',
+    d.activity_code ? ` <div class="k">Үйл ажиллагааны чиглэл код</div><div class="v mono">${escapeHtml(d.activity_code)}</div>` : '',
+    d.activity_main ? ` <div class="k">Үндсэн эрхлэх үйл ажиллагааны чиглэл</div><div class="v">${escapeHtml(d.activity_main)}</div>` : '',
+    d.address ? ` <div class="k">Байгууллагын дэлгэрэнгүй хаяг</div><div class="v">${escapeHtml(d.address)}</div>` : '',
+    d.responsibilities ? ` <div class="k">Байгууллагын чиг үүрэг</div><div class="v">${escapeHtml(d.responsibilities)}</div>` : '',
+    d.budget_admin ? ` <div class="k">Төсвийн ерөнхийлөн захирагч</div><div class="v">${escapeHtml(d.budget_admin)}</div>` : '',
+    d.accountant ? ` <div class="k">Нягтлан бодогч</div><div class="v">${escapeHtml(d.accountant)}</div>` : '',
+    d.phone ? ` <div class="k">Ажлын утас</div><div class="v mono">${escapeHtml(d.phone)}</div>` : '',
+    d.email ? ` <div class="k">И-мэйл</div><div class="v">${escapeHtml(d.email)}</div>` : '',
+  ].filter(Boolean);
+
+  if (!items.length) return '<div class="empty">Байгууллагын мэдээлэл хараахан нэмэгдээгүй байна.</div>';
+
+  return `
+    <div class="about-wrap">
+      <div class="about-head">Байгууллагын мэдээлэл</div>
+      <div class="about-grid">${items.join('')}</div>
+    </div>`;
+}
+
+async function loadAboutInfo() {
+  try {
+    const d = await api('/api/about');
+    const root = $('#aboutInfo');
+    if (!root) return;
+    root.innerHTML = buildAboutHtml(d);
+  } catch {
+    const root = $('#aboutInfo');
+    if (root) root.innerHTML = '<div class="empty">Байгууллагын мэдээлэл ачаалах боломжгүй байна.</div>';
+  }
+}
+
 // ---------- news ----------
 async function loadNews() {
+
   const el = $('#newsList');
   el.innerHTML = '<div class="empty">Ачааллаж байна...</div>';
   const { items } = await api('/api/news');
