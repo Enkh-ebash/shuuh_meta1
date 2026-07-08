@@ -94,7 +94,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);ba
   border-radius:var(--radius);
   overflow:hidden;
   margin-top:0;
-  background:var(--navy) url('assets/mendee1.jpg') center/cover no-repeat;
+  background:var(--navy) url('assets/theme1.jpg') center/cover no-repeat;
   box-shadow:0 10px 30px rgba(11,27,48,.18);
 }
 .hero-banner::after{
@@ -193,6 +193,30 @@ tr:hover td{background:var(--paper);}
 .about-grid .v{font-size:13px;color:var(--ink);font-weight:600;line-height:1.35;}
 .about-grid{background:var(--paper-dim);border:1px solid var(--line);padding:14px 14px;border-radius:12px;}
 .about-grid .mono{font-size:12.5px;}
+
+/* ---------- leadership card (director photo + message) ---------- */
+.leader-card{margin-top:16px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+.leader-photo{
+  width:150px;height:190px;object-fit:cover;border-radius:12px;flex-shrink:0;
+  border:3px solid var(--gold-soft);box-shadow:0 8px 20px rgba(19,40,68,.12);
+}
+.leader-text{flex:1;min-width:220px;}
+.leader-text h3{font-family:'Lora',serif;color:var(--navy);font-size:17px;margin-top:6px;}
+.leader-text p{font-size:13.5px;color:var(--ink-soft);margin-top:8px;line-height:1.6;}
+@media(max-width:480px){
+  .leader-card{flex-direction:column;align-items:center;text-align:center;}
+  .leader-photo{width:140px;height:176px;}
+}
+
+/* ---------- footer letterhead flourish ---------- */
+.foot-letterhead{
+  margin-top:36px;height:44px;
+  background:url('assets/emblem3.jpg') center/cover no-repeat;
+  opacity:.14;
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  filter:grayscale(1);
+}
 
 @media(prefers-reduced-motion:reduce){
   *{transition-duration:.001ms !important;animation-duration:.001ms !important;}
