@@ -100,13 +100,19 @@ $('#logoutBtn').addEventListener('click', () => {
 
 $('#adminBtn').addEventListener('click', () => showView('admin'));
 
-$$('.tile').forEach((t) => t.addEventListener('click', () => {
-  const go = t.dataset.go;
-  showView(go);
-  if (go === 'news') loadNews();
-  if (go === 'calendar') renderCalendar();
-  if (go === 'feedback') loadMyFeedback();
-}));
+$$('.tile').forEach((t) => {
+  const activate = () => {
+    const go = t.dataset.go;
+    showView(go);
+    if (go === 'news') loadNews();
+    if (go === 'calendar') renderCalendar();
+    if (go === 'feedback') loadMyFeedback();
+  };
+  t.addEventListener('click', activate);
+  t.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
+  });
+});
 
 $$('[data-back]').forEach((b) => b.addEventListener('click', () => showView('dash')));
 
@@ -395,4 +401,4 @@ async function loadAdminTab(tab) {
       loadAdminTab('news');
     });
   }
-}
+} 

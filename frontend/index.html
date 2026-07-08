@@ -29,38 +29,81 @@
 <div class="wrap">
 
   <!-- REGISTRATION GATE -->
-  <div id="gateView" class="gate card">
-    <h1>Тавтай морил</h1>
-    <p>Үйлчилгээ авахын тулд эхлээд бүртгүүлнэ үү.</p>
-    <label>Овог</label>
-    <input id="regOvog" placeholder="Жишээ: Отгонбаяр">
-    <label>Нэр</label>
-    <input id="regNer" placeholder="Жишээ: Энхманлай">
-    <label>Регистрийн дугаар</label>
-    <input id="regRegister" placeholder="АБ12345678" class="mono">
-    <label>Утасны дугаар</label>
-    <input id="regPhone" placeholder="99112233" class="mono" maxlength="8">
-    <button class="btn-primary" id="regSubmit">Бүртгүүлэх / Нэвтрэх</button>
-    <div class="err" id="regErr"></div>
-    <div class="hint">Аль хэдийн бүртгэлтэй бол ижил регистрийн дугаар, утасны дугаараа оруулаад нэвтэрнэ.</div>
+  <div id="gateView">
+    <div class="hero-banner">
+      <div class="hero-banner-in">
+        <div class="eyebrow eyebrow-light">Иргэний үйлчилгээ</div>
+        <h1>Ховд аймаг дахь Шүүхийн шийдвэр гүйцэтгэх газар</h1>
+        <p>457 дугаар нээлттэй, хаалттай хорих анги — цаг захиалга, санал хүсэлт, мэдээллийн цахим систем</p>
+      </div>
+    </div>
+    <div class="gate card">
+      <h1>Тавтай морил</h1>
+      <p>Үйлчилгээ авахын тулд эхлээд бүртгүүлнэ үү.</p>
+      <label>Овог</label>
+      <input id="regOvog" placeholder="Жишээ: Отгонбаяр">
+      <label>Нэр</label>
+      <input id="regNer" placeholder="Жишээ: Энхманлай">
+      <label>Регистрийн дугаар</label>
+      <input id="regRegister" placeholder="АБ12345678" class="mono">
+      <label>Утасны дугаар</label>
+      <input id="regPhone" placeholder="99112233" class="mono" maxlength="8">
+      <button class="btn-primary" id="regSubmit">Бүртгүүлэх / Нэвтрэх</button>
+      <div class="err" id="regErr"></div>
+      <div class="hint">Аль хэдийн бүртгэлтэй бол ижил регистрийн дугаар, утасны дугаараа оруулаад нэвтэрнэ.</div>
+    </div>
   </div>
 
   <!-- DASHBOARD -->
   <div id="dashView" class="hidden">
-    <div class="hero">
-      <div class="eyebrow">Иргэний үйлчилгээ</div>
-      <h1>Сайн байна уу, <span id="dashName"></span></h1>
-      <p>Доорх зургаан цэснээс хэрэгтэй үйлчилгээгээ сонгоно уу.</p>
+    <div class="hero-banner">
+      <div class="hero-banner-in">
+        <div class="eyebrow eyebrow-light">Иргэний үйлчилгээ</div>
+        <h1>Сайн байна уу, <span id="dashName"></span></h1>
+        <p>Доорх зургаан цэснээс хэрэгтэй үйлчилгээгээ сонгоно уу.</p>
+      </div>
     </div>
+    <div class="section-label">Үйлчилгээнүүд</div>
     <div class="grid6">
-      <div class="tile" data-go="intro"><span class="num">1</span><div class="name">Танилцуулга</div><div class="desc">Байгууллагын үйл ажиллагаа, чиг үүрэг</div></div>
-      <div class="tile" data-go="feedback"><span class="num">2</span><div class="name">Санал хүсэлт</div><div class="desc">Санал, гомдол, хүсэлт илгээх</div></div>
-      <div class="tile" data-go="longqueue"><span class="num">3</span><div class="name">Урт хугцааны эргэлт</div><div class="desc">72 цагийн ээлжийн бүртгэл</div></div>
-      <div class="tile" data-go="simplequeue"><span class="num">4</span><div class="name">Энгийн эргэлт</div><div class="desc">Өдрийн энгийн ээлжийн бүртгэл</div></div>
-      <div class="tile" data-go="news"><span class="num">5</span><div class="name">Мэдээ мэдээлэл</div><div class="desc">Сүүлийн үеийн мэдээ</div></div>
-      <div class="tile" data-go="calendar"><span class="num">6</span><div class="name">Он сар календарь</div><div class="desc">Ажлын хуваарь, эргэлтийн өдрүүд</div></div>
+      <div class="tile" data-go="intro" tabindex="0" role="button">
+        <span class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M8 13h8M8 17h5"/></svg>
+        </span>
+        <span class="num">1</span><div class="name">Танилцуулга</div><div class="desc">Байгууллагын үйл ажиллагаа, чиг үүрэг</div>
+      </div>
+      <div class="tile" data-go="feedback" tabindex="0" role="button">
+        <span class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v11H8l-4 4V5Z"/><path d="M8 9h8M8 12h5"/></svg>
+        </span>
+        <span class="num">2</span><div class="name">Санал хүсэлт</div><div class="desc">Санал, гомдол, хүсэлт илгээх</div>
+      </div>
+      <div class="tile" data-go="longqueue" tabindex="0" role="button">
+        <span class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        </span>
+        <span class="num">3</span><div class="name">Урт хугцааны эргэлт</div><div class="desc">72 цагийн ээлжийн бүртгэл</div>
+      </div>
+      <div class="tile" data-go="simplequeue" tabindex="0" role="button">
+        <span class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4V7Z"/><path d="M14 7v14" stroke-dasharray="2.5 2.5"/></svg>
+        </span>
+        <span class="num">4</span><div class="name">Энгийн эргэлт</div><div class="desc">Өдрийн энгийн ээлжийн бүртгэл</div>
+      </div>
+      <div class="tile" data-go="news" tabindex="0" role="button">
+        <span class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11v6a2 2 0 0 0 2 2h2V9H6a2 2 0 0 0-2 2Z"/><path d="M8 9l10-4v14L8 15"/><path d="M18 9a3 3 0 0 1 0 6"/></svg>
+        </span>
+        <span class="num">5</span><div class="name">Мэдээ мэдээлэл</div><div class="desc">Сүүлийн үеийн мэдээ</div>
+      </div>
+      <div class="tile" data-go="calendar" tabindex="0" role="button">
+        <span class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/></svg>
+        </span>
+        <span class="num">6</span><div class="name">Он сар календарь</div><div class="desc">Ажлын хуваарь, эргэлтийн өдрүүд</div>
+      </div>
     </div>
   </div>
+
 
   <!-- INTRO -->
   <div id="introView" class="hidden">
