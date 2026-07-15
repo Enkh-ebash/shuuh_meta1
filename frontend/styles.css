@@ -208,11 +208,12 @@ tr:hover td{background:var(--paper);}
   .leader-photo{width:140px;height:176px;}
 }
 
-/* ---------- footer letterhead flourish ---------- */
+
 .foot-letterhead{
-  margin-top:36px;height:44px;
+  margin-top:36px;height:240px;
   background:url('assets/emblem3.jpg') center/cover no-repeat;
   opacity:.14;
+
   border-top:1px solid var(--line);
   border-bottom:1px solid var(--line);
   filter:grayscale(1);
