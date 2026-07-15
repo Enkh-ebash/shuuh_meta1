@@ -152,8 +152,33 @@ async function loadMyFeedback() {
 }
 
 // ---------- long queue ----------
+const LQ_RELATIONS = ['Аав', 'Ээж', 'Ах/Эгч', 'Дүү', 'Хүүхэд', 'Эхнэр/Нөхөр', 'Өвөө/Эмээ', 'бусад'];
+
 $('#lqDate').value = todayISO();
 $('#lqLoad').addEventListener('click', () => renderLongQueue($('#lqDate').value));
+
+function entryLine(p) {
+  const who = p.prisoner_ovog || p.prisoner_ner
+    ? ` — хоригдол: ${escapeHtml(p.prisoner_ovog)} ${escapeHtml(p.prisoner_ner)}${p.relation ? ` (${escapeHtml(p.relation)})` : ''}`
+    : '';
+  return `<div>• ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} <span class="mono">(${p.register})</span>${who}</div>`;
+}
+
+function bookingFormHtml() {
+  return `<div class="card" id="lqBookForm" style="margin-top:10px">
+    <label>Хоригдлын овог</label>
+    <input type="text" id="lqPrisonerOvog" maxlength="80" placeholder="Овог">
+    <label style="margin-top:8px">Хоригдлын нэр</label>
+    <input type="text" id="lqPrisonerNer" maxlength="80" placeholder="Нэр">
+    <label style="margin-top:8px">Хоригдолтой ямар хамааралтай вэ?</label>
+    <select id="lqRelation">
+      <option value="">-- Сонгоно уу --</option>
+      ${LQ_RELATIONS.map((r) => `<option value="${escapeHtml(r)}">${r === 'бусад' ? 'Бусад' : escapeHtml(r)}</option>`).join('')}
+    </select>
+    <input type="text" id="lqRelationOther" maxlength="80" placeholder="Хамаарлаа бичнэ үү" style="margin-top:8px;display:none">
+    <button class="btn-primary" id="lqConfirmBtn" style="margin-top:12px">Баталгаажуулах</button>
+  </div>`;
+}
 
 async function renderLongQueue(date) {
   if (!date) return;
@@ -165,20 +190,39 @@ async function renderLongQueue(date) {
     el.innerHTML = `<div class="slot">
       <div class="date">${date}</div>
       <span class="status ${full ? 'full' : 'open'}">${full ? 'Дүүрсэн' : 'Захиалга авч байна (' + info.entries.length + '/' + info.capacity + ')'}</span>
-      <div class="who">${info.entries.map((p) => `<div>• ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} <span class="mono">${p.register}</span></div>`).join('') || '<div>Одоогоор хэн ч бүртгүүлээгүй.</div>'}</div>
+      <div class="who">${info.entries.map(entryLine).join('') || '<div>Одоогоор хэн ч бүртгүүлээгүй.</div>'}</div>
       ${full ? `<div class="unlock-note">72 цагийн дараа буюу ${new Date(info.lockedUntil).toLocaleString('mn-MN')} үед дараагийн иргэд бүртгүүлэх боломжтой болно.</div>` : ''}
       <button class="take" id="lqTakeBtn" ${full || info.alreadyIn ? 'disabled' : ''}>${info.alreadyIn ? 'Та энэ ээлжинд аль хэдийн бүртгэлтэй' : (full ? 'Дүүрсэн' : 'Энэ өдөрт цаг авах')}</button>
     </div>`;
     const btn = $('#lqTakeBtn');
     if (btn && !btn.disabled) {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         btn.disabled = true;
-        try {
-          await api(`/api/queue/long/${date}`, { method: 'POST' });
-        } catch (e) {
-          alert(e.message);
-        }
-        renderLongQueue(date);
+        btn.insertAdjacentHTML('afterend', bookingFormHtml());
+        const relationSel = $('#lqRelation');
+        const otherInput = $('#lqRelationOther');
+        relationSel.addEventListener('change', () => {
+          otherInput.style.display = relationSel.value === 'бусад' ? '' : 'none';
+        });
+        $('#lqConfirmBtn').addEventListener('click', async () => {
+          const prisonerOvog = $('#lqPrisonerOvog').value.trim();
+          const prisonerNer = $('#lqPrisonerNer').value.trim();
+          const relation = relationSel.value;
+          const relationOther = otherInput.value.trim();
+          if (!prisonerOvog || !prisonerNer) return alert('Хоригдлын овог, нэрийг бөглөнө үү.');
+          if (!relation) return alert('Хоригдолтой ямар хамааралтайгаа сонгоно уу.');
+          if (relation === 'бусад' && !relationOther) return alert('Хамаарлаа бичнэ үү.');
+          $('#lqConfirmBtn').disabled = true;
+          try {
+            await api(`/api/queue/long/${date}`, {
+              method: 'POST',
+              body: { prisonerOvog, prisonerNer, relation, relationOther },
+            });
+          } catch (e) {
+            alert(e.message);
+          }
+          renderLongQueue(date);
+        });
       });
     }
   } catch (e) {
@@ -200,7 +244,7 @@ async function renderSimpleQueue(date) {
     el.innerHTML = `<div class="slot">
       <div class="date">${date}</div>
       <span class="status open">Бүртгэлтэй: ${info.entries.length} хүн</span>
-      <div class="who">${info.entries.map((p, i) => `<div>№${i + 1} — ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} <span class="mono">${p.register}</span></div>`).join('') || '<div>Одоогоор хэн ч бүртгүүлээгүй.</div>'}</div>
+      <div class="who">${info.entries.map((p, i) => `<div>№${i + 1} — ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} <span class="mono">(${p.register})</span></div>`).join('') || '<div>Одоогоор хэн ч бүртгүүлээгүй.</div>'}</div>
       <button class="take" id="sqTakeBtn" ${info.alreadyIn ? 'disabled' : ''}>${info.alreadyIn ? 'Та бүртгэлтэй байна (№' + info.myPosition + ')' : 'Дараалалд орох (№' + (info.entries.length + 1) + ')'}</button>
     </div>`;
     const btn = $('#sqTakeBtn');
@@ -354,7 +398,7 @@ async function loadAdminTab(tab) {
       return `<div class="slot" style="margin-bottom:10px">
         <div class="date">${date} <span style="color:var(--ink-soft);font-weight:400">— ${wave}-р ээлж</span></div>
         <span class="status ${people.length >= 3 ? 'full' : 'open'}">${people.length}/3</span>
-        <div class="who">${people.map((p) => `<div>• ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} — <span class="mono">${p.register}</span> — <span class="mono">${p.phone}</span></div>`).join('')}</div>
+        <div class="who">${people.map((p) => `<div>• ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} — <span class="mono">(${p.register})</span> — <span class="mono">${p.phone}</span>${p.prisoner_ovog || p.prisoner_ner ? ` — хоригдол: ${escapeHtml(p.prisoner_ovog)} ${escapeHtml(p.prisoner_ner)}${p.relation ? ` (${escapeHtml(p.relation)})` : ''}` : ''}</div>`).join('')}</div>
       </div>`;
     }).join('') : '<div class="empty">Урт хугцааны эргэлтэд бүртгэл алга.</div>';
   }

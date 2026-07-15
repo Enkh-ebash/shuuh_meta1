@@ -41,6 +41,9 @@ CREATE TABLE IF NOT EXISTS long_queue (
   ner TEXT NOT NULL,
   phone TEXT NOT NULL,
   booked_at INTEGER NOT NULL,
+  prisoner_ovog TEXT NOT NULL DEFAULT '',
+  prisoner_ner TEXT NOT NULL DEFAULT '',
+  relation TEXT NOT NULL DEFAULT '',
   UNIQUE(date, wave, register)
 );
 
@@ -102,5 +105,13 @@ CREATE TABLE IF NOT EXISTS about_info (
 );
 `);
 
+// Migration: existing installs (created before this feature existed) won't have
+// these columns yet — CREATE TABLE IF NOT EXISTS above only fires on a fresh DB.
+(function migrateLongQueueColumns() {
+  const cols = db.prepare('PRAGMA table_info(long_queue)').all().map((c) => c.name);
+  if (!cols.includes('prisoner_ovog')) db.exec("ALTER TABLE long_queue ADD COLUMN prisoner_ovog TEXT NOT NULL DEFAULT ''");
+  if (!cols.includes('prisoner_ner')) db.exec("ALTER TABLE long_queue ADD COLUMN prisoner_ner TEXT NOT NULL DEFAULT ''");
+  if (!cols.includes('relation')) db.exec("ALTER TABLE long_queue ADD COLUMN relation TEXT NOT NULL DEFAULT ''");
+})();
 
 module.exports = db;

@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../util/auth');
-const { isValidDate } = require('../util/validate');
+const { isValidDate, cleanName, isValidRelation } = require('../util/validate');
 
 const router = express.Router();
 const LOCK_MS = 72 * 60 * 60 * 1000; // 72 hours
@@ -15,7 +15,7 @@ function getCurrentLongWave(date) {
   const row = db.prepare('SELECT MAX(wave) as w FROM long_queue WHERE date = ?').get(date);
   const maxWave = row.w || 1;
   const entries = db
-    .prepare('SELECT register, ovog, ner, phone, booked_at FROM long_queue WHERE date = ? AND wave = ? ORDER BY booked_at ASC')
+    .prepare('SELECT register, ovog, ner, phone, prisoner_ovog, prisoner_ner, relation, booked_at FROM long_queue WHERE date = ? AND wave = ? ORDER BY booked_at ASC')
     .all(date, maxWave);
 
   if (entries.length >= WAVE_CAPACITY) {
@@ -49,10 +49,28 @@ router.post('/long/:date', requireAuth, (req, res) => {
     return res.status(409).json({ error: 'Та энэ ээлжинд аль хэдийн бүртгэлтэй байна.' });
   }
 
+  // Who they're visiting, and the visitor's relation to that prisoner. Both are
+  // required so staff know who to bring forward without asking again in person.
+  const prisonerOvog = cleanName(req.body.prisonerOvog);
+  const prisonerNer = cleanName(req.body.prisonerNer);
+  const relationChoice = typeof req.body.relation === 'string' ? req.body.relation.trim() : '';
+  const relationOther = cleanName(req.body.relationOther);
+
+  if (!prisonerOvog || !prisonerNer) {
+    return res.status(400).json({ error: 'Хоригдлын овог, нэрийг бөглөнө үү.' });
+  }
+  if (!isValidRelation(relationChoice)) {
+    return res.status(400).json({ error: 'Хоригдолтой ямар хамааралтайгаа сонгоно уу.' });
+  }
+  if (relationChoice === 'бусад' && !relationOther) {
+    return res.status(400).json({ error: 'Хамаарлаа бичнэ үү.' });
+  }
+  const relation = relationChoice === 'бусад' ? `Бусад: ${relationOther}` : relationChoice;
+
   try {
     db.prepare(
-      'INSERT INTO long_queue (date, wave, register, ovog, ner, phone, booked_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).run(date, info.wave, req.user.sub, req.user.ovog, req.user.ner, req.user.phone, Date.now());
+      'INSERT INTO long_queue (date, wave, register, ovog, ner, phone, prisoner_ovog, prisoner_ner, relation, booked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(date, info.wave, req.user.sub, req.user.ovog, req.user.ner, req.user.phone, prisonerOvog, prisonerNer, relation, Date.now());
   } catch (e) {
     return res.status(409).json({ error: 'Захиалга авахад алдаа гарлаа. Дахин оролдоно уу.' });
   }

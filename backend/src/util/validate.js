@@ -19,4 +19,12 @@ function cleanName(v) {
   return typeof v === 'string' ? v.trim().slice(0, 80) : '';
 }
 
-module.exports = { isValidRegister, isValidPhone, isValidDate, cleanName };
+// Predefined relation options shown in the booking dropdown. 'бусад' (other) is
+// always paired with a free-text value the visitor types in themselves.
+const RELATIONS = ['Аав', 'Ээж', 'Ах/Эгч', 'Дүү', 'Хүүхэд', 'Эхнэр/Нөхөр', 'Өвөө/Эмээ', 'бусад'];
+
+function isValidRelation(v) {
+  return typeof v === 'string' && RELATIONS.includes(v.trim());
+}
+
+module.exports = { isValidRegister, isValidPhone, isValidDate, cleanName, RELATIONS, isValidRelation };

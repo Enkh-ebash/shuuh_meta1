@@ -23,7 +23,7 @@ router.get('/users', requireAdmin, (req, res) => {
 
 router.get('/queue/long', requireAdmin, (req, res) => {
   const rows = db
-    .prepare('SELECT date, wave, register, ovog, ner, phone, booked_at FROM long_queue ORDER BY date DESC, wave DESC, booked_at ASC')
+    .prepare('SELECT date, wave, register, ovog, ner, phone, prisoner_ovog, prisoner_ner, relation, booked_at FROM long_queue ORDER BY date DESC, wave DESC, booked_at ASC')
     .all();
   res.json({ items: rows });
 });
