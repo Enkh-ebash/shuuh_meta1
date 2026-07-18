@@ -1,0 +1,217 @@
+diff --git a/backend/src/db/index.js b/backend/src/db/index.js
+index 93c7b65..dca8ed8 100644
+--- a/backend/src/db/index.js
++++ b/backend/src/db/index.js
+@@ -41,6 +41,9 @@ CREATE TABLE IF NOT EXISTS long_queue (
+   ner TEXT NOT NULL,
+   phone TEXT NOT NULL,
+   booked_at INTEGER NOT NULL,
++  prisoner_ovog TEXT NOT NULL DEFAULT '',
++  prisoner_ner TEXT NOT NULL DEFAULT '',
++  relation TEXT NOT NULL DEFAULT '',
+   UNIQUE(date, wave, register)
+ );
+ 
+@@ -102,5 +105,13 @@ CREATE TABLE IF NOT EXISTS about_info (
+ );
+ `);
+ 
++// Migration: existing installs (created before this feature existed) won't have
++// these columns yet — CREATE TABLE IF NOT EXISTS above only fires on a fresh DB.
++(function migrateLongQueueColumns() {
++  const cols = db.prepare('PRAGMA table_info(long_queue)').all().map((c) => c.name);
++  if (!cols.includes('prisoner_ovog')) db.exec("ALTER TABLE long_queue ADD COLUMN prisoner_ovog TEXT NOT NULL DEFAULT ''");
++  if (!cols.includes('prisoner_ner')) db.exec("ALTER TABLE long_queue ADD COLUMN prisoner_ner TEXT NOT NULL DEFAULT ''");
++  if (!cols.includes('relation')) db.exec("ALTER TABLE long_queue ADD COLUMN relation TEXT NOT NULL DEFAULT ''");
++})();
+ 
+ module.exports = db;
+diff --git a/backend/src/routes/admin.js b/backend/src/routes/admin.js
+index 793d7e6..d7a52e3 100644
+--- a/backend/src/routes/admin.js
++++ b/backend/src/routes/admin.js
+@@ -23,7 +23,7 @@ router.get('/users', requireAdmin, (req, res) => {
+ 
+ router.get('/queue/long', requireAdmin, (req, res) => {
+   const rows = db
+-    .prepare('SELECT date, wave, register, ovog, ner, phone, booked_at FROM long_queue ORDER BY date DESC, wave DESC, booked_at ASC')
++    .prepare('SELECT date, wave, register, ovog, ner, phone, prisoner_ovog, prisoner_ner, relation, booked_at FROM long_queue ORDER BY date DESC, wave DESC, booked_at ASC')
+     .all();
+   res.json({ items: rows });
+ });
+diff --git a/backend/src/routes/queue.js b/backend/src/routes/queue.js
+index 731a9bb..af5b6b0 100644
+--- a/backend/src/routes/queue.js
++++ b/backend/src/routes/queue.js
+@@ -1,7 +1,7 @@
+ const express = require('express');
+ const db = require('../db');
+ const { requireAuth } = require('../util/auth');
+-const { isValidDate } = require('../util/validate');
++const { isValidDate, cleanName, isValidRelation } = require('../util/validate');
+ 
+ const router = express.Router();
+ const LOCK_MS = 72 * 60 * 60 * 1000; // 72 hours
+@@ -15,7 +15,7 @@ function getCurrentLongWave(date) {
+   const row = db.prepare('SELECT MAX(wave) as w FROM long_queue WHERE date = ?').get(date);
+   const maxWave = row.w || 1;
+   const entries = db
+-    .prepare('SELECT register, ovog, ner, phone, booked_at FROM long_queue WHERE date = ? AND wave = ? ORDER BY booked_at ASC')
++    .prepare('SELECT register, ovog, ner, phone, prisoner_ovog, prisoner_ner, relation, booked_at FROM long_queue WHERE date = ? AND wave = ? ORDER BY booked_at ASC')
+     .all(date, maxWave);
+ 
+   if (entries.length >= WAVE_CAPACITY) {
+@@ -49,10 +49,28 @@ router.post('/long/:date', requireAuth, (req, res) => {
+     return res.status(409).json({ error: 'Та энэ ээлжинд аль хэдийн бүртгэлтэй байна.' });
+   }
+ 
++  // Who they're visiting, and the visitor's relation to that prisoner. Both are
++  // required so staff know who to bring forward without asking again in person.
++  const prisonerOvog = cleanName(req.body.prisonerOvog);
++  const prisonerNer = cleanName(req.body.prisonerNer);
++  const relationChoice = typeof req.body.relation === 'string' ? req.body.relation.trim() : '';
++  const relationOther = cleanName(req.body.relationOther);
++
++  if (!prisonerOvog || !prisonerNer) {
++    return res.status(400).json({ error: 'Хоригдлын овог, нэрийг бөглөнө үү.' });
++  }
++  if (!isValidRelation(relationChoice)) {
++    return res.status(400).json({ error: 'Хоригдолтой ямар хамааралтайгаа сонгоно уу.' });
++  }
++  if (relationChoice === 'бусад' && !relationOther) {
++    return res.status(400).json({ error: 'Хамаарлаа бичнэ үү.' });
++  }
++  const relation = relationChoice === 'бусад' ? `Бусад: ${relationOther}` : relationChoice;
++
+   try {
+     db.prepare(
+-      'INSERT INTO long_queue (date, wave, register, ovog, ner, phone, booked_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+-    ).run(date, info.wave, req.user.sub, req.user.ovog, req.user.ner, req.user.phone, Date.now());
++      'INSERT INTO long_queue (date, wave, register, ovog, ner, phone, prisoner_ovog, prisoner_ner, relation, booked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
++    ).run(date, info.wave, req.user.sub, req.user.ovog, req.user.ner, req.user.phone, prisonerOvog, prisonerNer, relation, Date.now());
+   } catch (e) {
+     return res.status(409).json({ error: 'Захиалга авахад алдаа гарлаа. Дахин оролдоно уу.' });
+   }
+diff --git a/backend/src/util/validate.js b/backend/src/util/validate.js
+index 8f460e7..5984f2c 100644
+--- a/backend/src/util/validate.js
++++ b/backend/src/util/validate.js
+@@ -19,4 +19,12 @@ function cleanName(v) {
+   return typeof v === 'string' ? v.trim().slice(0, 80) : '';
+ }
+ 
+-module.exports = { isValidRegister, isValidPhone, isValidDate, cleanName };
++// Predefined relation options shown in the booking dropdown. 'бусад' (other) is
++// always paired with a free-text value the visitor types in themselves.
++const RELATIONS = ['Аав', 'Ээж', 'Ах/Эгч', 'Дүү', 'Хүүхэд', 'Эхнэр/Нөхөр', 'Өвөө/Эмээ', 'бусад'];
++
++function isValidRelation(v) {
++  return typeof v === 'string' && RELATIONS.includes(v.trim());
++}
++
++module.exports = { isValidRegister, isValidPhone, isValidDate, cleanName, RELATIONS, isValidRelation };
+diff --git a/frontend/app.js b/frontend/app.js
+index 43c667a..51625a1 100644
+--- a/frontend/app.js
++++ b/frontend/app.js
+@@ -152,9 +152,34 @@ async function loadMyFeedback() {
+ }
+ 
+ // ---------- long queue ----------
++const LQ_RELATIONS = ['Аав', 'Ээж', 'Ах/Эгч', 'Дүү', 'Хүүхэд', 'Эхнэр/Нөхөр', 'Өвөө/Эмээ', 'бусад'];
++
+ $('#lqDate').value = todayISO();
+ $('#lqLoad').addEventListener('click', () => renderLongQueue($('#lqDate').value));
+ 
++function entryLine(p) {
++  const who = p.prisoner_ovog || p.prisoner_ner
++    ? ` — хоригдол: ${escapeHtml(p.prisoner_ovog)} ${escapeHtml(p.prisoner_ner)}${p.relation ? ` (${escapeHtml(p.relation)})` : ''}`
++    : '';
++  return `<div>• ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} <span class="mono">(${p.register})</span>${who}</div>`;
++}
++
++function bookingFormHtml() {
++  return `<div class="card" id="lqBookForm" style="margin-top:10px">
++    <label>Хоригдлын овог</label>
++    <input type="text" id="lqPrisonerOvog" maxlength="80" placeholder="Овог">
++    <label style="margin-top:8px">Хоригдлын нэр</label>
++    <input type="text" id="lqPrisonerNer" maxlength="80" placeholder="Нэр">
++    <label style="margin-top:8px">Хоригдолтой ямар хамааралтай вэ?</label>
++    <select id="lqRelation">
++      <option value="">-- Сонгоно уу --</option>
++      ${LQ_RELATIONS.map((r) => `<option value="${escapeHtml(r)}">${r === 'бусад' ? 'Бусад' : escapeHtml(r)}</option>`).join('')}
++    </select>
++    <input type="text" id="lqRelationOther" maxlength="80" placeholder="Хамаарлаа бичнэ үү" style="margin-top:8px;display:none">
++    <button class="btn-primary" id="lqConfirmBtn" style="margin-top:12px">Баталгаажуулах</button>
++  </div>`;
++}
++
+ async function renderLongQueue(date) {
+   if (!date) return;
+   const el = $('#lqResult');
+@@ -165,20 +190,39 @@ async function renderLongQueue(date) {
+     el.innerHTML = `<div class="slot">
+       <div class="date">${date}</div>
+       <span class="status ${full ? 'full' : 'open'}">${full ? 'Дүүрсэн' : 'Захиалга авч байна (' + info.entries.length + '/' + info.capacity + ')'}</span>
+-      <div class="who">${info.entries.map((p) => `<div>• ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} <span class="mono">${p.register}</span></div>`).join('') || '<div>Одоогоор хэн ч бүртгүүлээгүй.</div>'}</div>
++      <div class="who">${info.entries.map(entryLine).join('') || '<div>Одоогоор хэн ч бүртгүүлээгүй.</div>'}</div>
+       ${full ? `<div class="unlock-note">72 цагийн дараа буюу ${new Date(info.lockedUntil).toLocaleString('mn-MN')} үед дараагийн иргэд бүртгүүлэх боломжтой болно.</div>` : ''}
+       <button class="take" id="lqTakeBtn" ${full || info.alreadyIn ? 'disabled' : ''}>${info.alreadyIn ? 'Та энэ ээлжинд аль хэдийн бүртгэлтэй' : (full ? 'Дүүрсэн' : 'Энэ өдөрт цаг авах')}</button>
+     </div>`;
+     const btn = $('#lqTakeBtn');
+     if (btn && !btn.disabled) {
+-      btn.addEventListener('click', async () => {
++      btn.addEventListener('click', () => {
+         btn.disabled = true;
+-        try {
+-          await api(`/api/queue/long/${date}`, { method: 'POST' });
+-        } catch (e) {
+-          alert(e.message);
+-        }
+-        renderLongQueue(date);
++        btn.insertAdjacentHTML('afterend', bookingFormHtml());
++        const relationSel = $('#lqRelation');
++        const otherInput = $('#lqRelationOther');
++        relationSel.addEventListener('change', () => {
++          otherInput.style.display = relationSel.value === 'бусад' ? '' : 'none';
++        });
++        $('#lqConfirmBtn').addEventListener('click', async () => {
++          const prisonerOvog = $('#lqPrisonerOvog').value.trim();
++          const prisonerNer = $('#lqPrisonerNer').value.trim();
++          const relation = relationSel.value;
++          const relationOther = otherInput.value.trim();
++          if (!prisonerOvog || !prisonerNer) return alert('Хоригдлын овог, нэрийг бөглөнө үү.');
++          if (!relation) return alert('Хоригдолтой ямар хамааралтайгаа сонгоно уу.');
++          if (relation === 'бусад' && !relationOther) return alert('Хамаарлаа бичнэ үү.');
++          $('#lqConfirmBtn').disabled = true;
++          try {
++            await api(`/api/queue/long/${date}`, {
++              method: 'POST',
++              body: { prisonerOvog, prisonerNer, relation, relationOther },
++            });
++          } catch (e) {
++            alert(e.message);
++          }
++          renderLongQueue(date);
++        });
+       });
+     }
+   } catch (e) {
+@@ -200,7 +244,7 @@ async function renderSimpleQueue(date) {
+     el.innerHTML = `<div class="slot">
+       <div class="date">${date}</div>
+       <span class="status open">Бүртгэлтэй: ${info.entries.length} хүн</span>
+-      <div class="who">${info.entries.map((p, i) => `<div>№${i + 1} — ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} <span class="mono">${p.register}</span></div>`).join('') || '<div>Одоогоор хэн ч бүртгүүлээгүй.</div>'}</div>
++      <div class="who">${info.entries.map((p, i) => `<div>№${i + 1} — ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} <span class="mono">(${p.register})</span></div>`).join('') || '<div>Одоогоор хэн ч бүртгүүлээгүй.</div>'}</div>
+       <button class="take" id="sqTakeBtn" ${info.alreadyIn ? 'disabled' : ''}>${info.alreadyIn ? 'Та бүртгэлтэй байна (№' + info.myPosition + ')' : 'Дараалалд орох (№' + (info.entries.length + 1) + ')'}</button>
+     </div>`;
+     const btn = $('#sqTakeBtn');
+@@ -354,7 +398,7 @@ async function loadAdminTab(tab) {
+       return `<div class="slot" style="margin-bottom:10px">
+         <div class="date">${date} <span style="color:var(--ink-soft);font-weight:400">— ${wave}-р ээлж</span></div>
+         <span class="status ${people.length >= 3 ? 'full' : 'open'}">${people.length}/3</span>
+-        <div class="who">${people.map((p) => `<div>• ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} — <span class="mono">${p.register}</span> — <span class="mono">${p.phone}</span></div>`).join('')}</div>
++        <div class="who">${people.map((p) => `<div>• ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} — <span class="mono">(${p.register})</span> — <span class="mono">${p.phone}</span>${p.prisoner_ovog || p.prisoner_ner ? ` — хоригдол: ${escapeHtml(p.prisoner_ovog)} ${escapeHtml(p.prisoner_ner)}${p.relation ? ` (${escapeHtml(p.relation)})` : ''}` : ''}</div>`).join('')}</div>
+       </div>`;
+     }).join('') : '<div class="empty">Урт хугцааны эргэлтэд бүртгэл алга.</div>';
+   }
