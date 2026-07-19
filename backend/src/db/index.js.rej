@@ -1,4 +1,80 @@
 diff a/backend/src/db/index.js b/backend/src/db/index.js	(rejected hunks)
+@@ -1,18 +1,64 @@
+-// Node built-in SQLite (available Node >=22.5). Avoids native-module build issues entirely.
+-const { DatabaseSync } = require('node:sqlite');
+-const path = require('path');
+-const fs = require('fs');
++// Turso (libSQL) — a SQLite-compatible cloud database. Unlike a local SQLite
++// file, this data survives redeploys, restarts, and free-tier host spin-downs,
++// because it lives on Turso's servers rather than the host's local disk.
++//
++// Setup (one-time):
++//   1. Install the CLI and log in:      curl -sSfL https://get.tur.so/install.sh | bash
++//                                        turso auth login
++//   2. Create a database:               turso db create khovd457
++//   3. Get the connection URL:          turso db show khovd457 --url
++//   4. Create an auth token:            turso db tokens create khovd457
++//   5. Put both in your .env (see .env.example):
++//        TURSO_DATABASE_URL=libsql://khovd457-<org>.turso.io
++//        TURSO_AUTH_TOKEN=<token from step 4>
++//
++// Every query here used to be synchronous (node:sqlite's DatabaseSync). Turso
++// is accessed over the network, so every call is now async — prepare(sql).get/
++// .all/.run(...) all return Promises. Call sites must `await` them.
+ 
+-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', '..', 'data');
+-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
++const { createClient } = require('@libsql/client');
+ 
+-const DB_PATH = path.join(DATA_DIR, 'khovd457.db');
+-const db = new DatabaseSync(DB_PATH);
++// Load .env ourselves — this file is required both by server.js (which
++// already loads dotenv) and by standalone scripts (seedAdmin.js, seedAbout.js,
++// reset-data.js) run directly with `node ...`, which never went through
++// server.js and therefore never loaded .env otherwise.
++require('dotenv').config();
+ 
+-db.exec('PRAGMA journal_mode = WAL;');
+-db.exec('PRAGMA foreign_keys = ON;');
++const url = process.env.TURSO_DATABASE_URL;
++const authToken = process.env.TURSO_AUTH_TOKEN;
+ 
+-db.exec(`
++if (!url) {
++  throw new Error(
++    'TURSO_DATABASE_URL тохируулаагүй байна. .env файлыг шалгана уу (.env.example-ийг хуулна уу).'
++  );
++}
++
++const client = createClient({ url, authToken });
++
++// Thin compatibility layer so call sites keep the familiar
++// db.prepare(sql).get(...) / .all(...) / .run(...) shape — just async now.
++function prepare(sql) {
++  return {
++    get: async (...args) => {
++      const res = await client.execute({ sql, args });
++      return res.rows[0];
++    },
++    all: async (...args) => {
++      const res = await client.execute({ sql, args });
++      return res.rows;
++    },
++    run: async (...args) => {
++      const res = await client.execute({ sql, args });
++      return { changes: Number(res.rowsAffected || 0), lastInsertRowid: res.lastInsertRowid };
++    },
++  };
++}
++
++async function exec(sql) {
++  await client.executeMultiple(sql);
++}
++
++const SCHEMA = `
+ CREATE TABLE IF NOT EXISTS users (
+   id INTEGER PRIMARY KEY AUTOINCREMENT,
+   ovog TEXT NOT NULL,
 @@ -31,7 +77,9 @@ CREATE TABLE IF NOT EXISTS admins (
  );
  
@@ -37,3 +113,41 @@ diff a/backend/src/db/index.js b/backend/src/db/index.js	(rejected hunks)
  
  -- Organization info shown in the intro page.
  CREATE TABLE IF NOT EXISTS about_info (
+@@ -103,15 +138,25 @@ CREATE TABLE IF NOT EXISTS about_info (
+   accountant TEXT,
+   created_at INTEGER NOT NULL
+ );
+-`);
+-
+-// Migration: existing installs (created before this feature existed) won't have
+-// these columns yet — CREATE TABLE IF NOT EXISTS above only fires on a fresh DB.
+-(function migrateLongQueueColumns() {
+-  const cols = db.prepare('PRAGMA table_info(long_queue)').all().map((c) => c.name);
+-  if (!cols.includes('prisoner_ovog')) db.exec("ALTER TABLE long_queue ADD COLUMN prisoner_ovog TEXT NOT NULL DEFAULT ''");
+-  if (!cols.includes('prisoner_ner')) db.exec("ALTER TABLE long_queue ADD COLUMN prisoner_ner TEXT NOT NULL DEFAULT ''");
+-  if (!cols.includes('relation')) db.exec("ALTER TABLE long_queue ADD COLUMN relation TEXT NOT NULL DEFAULT ''");
+-})();
+-
+-module.exports = db;
++`;
++
++async function migrate() {
++  await exec(SCHEMA);
++
++  // Existing installs (created before this feature existed) won't have these
++  // columns yet — CREATE TABLE IF NOT EXISTS above only fires on a fresh DB.
++  const cols = (await client.execute('PRAGMA table_info(long_queue)')).rows.map((c) => c.name);
++  if (!cols.includes('prisoner_ovog')) await client.execute("ALTER TABLE long_queue ADD COLUMN prisoner_ovog TEXT NOT NULL DEFAULT ''");
++  if (!cols.includes('prisoner_ner')) await client.execute("ALTER TABLE long_queue ADD COLUMN prisoner_ner TEXT NOT NULL DEFAULT ''");
++  if (!cols.includes('relation')) await client.execute("ALTER TABLE long_queue ADD COLUMN relation TEXT NOT NULL DEFAULT ''");
++}
++
++// Resolves once the schema is ready. server.js awaits this before accepting
++// requests; seed/maintenance scripts should also `await require('./db').ready`
++// before running their own queries.
++const ready = migrate().catch((e) => {
++  console.error('DB migration/connection failed:', e.message);
++  process.exit(1);
++});
++
++module.exports = { prepare, exec, client, ready };
