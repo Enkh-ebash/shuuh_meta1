@@ -1,0 +1,296 @@
+diff --git a/backend/src/db/index.js b/backend/src/db/index.js
+index dca8ed8..18f3f45 100644
+--- a/backend/src/db/index.js
++++ b/backend/src/db/index.js
+@@ -31,7 +31,9 @@ CREATE TABLE IF NOT EXISTS admins (
+ );
+ 
+ -- Long-duration queue ("урт хугцааны эргэлт"): each date can have multiple "waves".
+--- A wave holds up to 3 people; once full, it locks for 72 hours; after that a new wave opens.
++-- A wave (rotation) holds up to 10 people; once full, it locks for 72 hours; after that
++-- a new wave opens automatically. Waves are not numbered/labeled as "shifts" to users —
++-- it's presented as one continuous rotation that refills after each 72h lock.
+ CREATE TABLE IF NOT EXISTS long_queue (
+   id INTEGER PRIMARY KEY AUTOINCREMENT,
+   date TEXT NOT NULL,
+@@ -47,18 +49,6 @@ CREATE TABLE IF NOT EXISTS long_queue (
+   UNIQUE(date, wave, register)
+ );
+ 
+--- Regular queue ("энгийн эргэлт"): simple ordered daily sign-up, no capacity lock.
+-CREATE TABLE IF NOT EXISTS simple_queue (
+-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+-  date TEXT NOT NULL,
+-  register TEXT NOT NULL,
+-  ovog TEXT NOT NULL,
+-  ner TEXT NOT NULL,
+-  phone TEXT NOT NULL,
+-  booked_at INTEGER NOT NULL,
+-  UNIQUE(date, register)
+-);
+-
+ CREATE TABLE IF NOT EXISTS feedback (
+   id INTEGER PRIMARY KEY AUTOINCREMENT,
+   register TEXT NOT NULL,
+@@ -80,7 +70,6 @@ CREATE TABLE IF NOT EXISTS news (
+ );
+ 
+ CREATE INDEX IF NOT EXISTS idx_long_queue_date ON long_queue(date);
+-CREATE INDEX IF NOT EXISTS idx_simple_queue_date ON simple_queue(date);
+ 
+ -- Organization info shown in the intro page.
+ CREATE TABLE IF NOT EXISTS about_info (
+diff --git a/backend/src/routes/admin.js b/backend/src/routes/admin.js
+index d7a52e3..30076ea 100644
+--- a/backend/src/routes/admin.js
++++ b/backend/src/routes/admin.js
+@@ -28,13 +28,6 @@ router.get('/queue/long', requireAdmin, (req, res) => {
+   res.json({ items: rows });
+ });
+ 
+-router.get('/queue/simple', requireAdmin, (req, res) => {
+-  const rows = db
+-    .prepare('SELECT date, register, ovog, ner, phone, booked_at FROM simple_queue ORDER BY date DESC, booked_at ASC')
+-    .all();
+-  res.json({ items: rows });
+-});
+-
+ router.get('/feedback', requireAdmin, (req, res) => {
+   const rows = db.prepare('SELECT * FROM feedback ORDER BY created_at DESC').all();
+   res.json({ items: rows });
+diff --git a/backend/src/routes/queue.js b/backend/src/routes/queue.js
+index af5b6b0..4626acf 100644
+--- a/backend/src/routes/queue.js
++++ b/backend/src/routes/queue.js
+@@ -5,7 +5,7 @@ const { isValidDate, cleanName, isValidRelation } = require('../util/validate');
+ 
+ const router = express.Router();
+ const LOCK_MS = 72 * 60 * 60 * 1000; // 72 hours
+-const WAVE_CAPACITY = 3;
++const WAVE_CAPACITY = 10;
+ 
+ // Compute the currently-active wave for a date: the wave people should see/book into.
+ // If the latest wave is full and still within its 72h lock, it is returned as 'full'
+@@ -78,34 +78,6 @@ router.post('/long/:date', requireAuth, (req, res) => {
+   res.status(201).json(getCurrentLongWave(date));
+ });
+ 
+-router.get('/simple/:date', requireAuth, (req, res) => {
+-  const { date } = req.params;
+-  if (!isValidDate(date)) return res.status(400).json({ error: 'Огноо буруу байна.' });
+-  const entries = db
+-    .prepare('SELECT register, ovog, ner, phone, booked_at FROM simple_queue WHERE date = ? ORDER BY booked_at ASC')
+-    .all(date);
+-  const myIndex = entries.findIndex((e) => e.register === req.user.sub);
+-  res.json({ date, entries, alreadyIn: myIndex >= 0, myPosition: myIndex >= 0 ? myIndex + 1 : null });
+-});
+-
+-router.post('/simple/:date', requireAuth, (req, res) => {
+-  const { date } = req.params;
+-  if (!isValidDate(date)) return res.status(400).json({ error: 'Огноо буруу байна.' });
+-
+-  try {
+-    db.prepare(
+-      'INSERT INTO simple_queue (date, register, ovog, ner, phone, booked_at) VALUES (?, ?, ?, ?, ?, ?)'
+-    ).run(date, req.user.sub, req.user.ovog, req.user.ner, req.user.phone, Date.now());
+-  } catch (e) {
+-    return res.status(409).json({ error: 'Та энэ өдрийн дараалалд аль хэдийн бүртгэлтэй байна.' });
+-  }
+-
+-  const entries = db
+-    .prepare('SELECT register, ovog, ner, phone, booked_at FROM simple_queue WHERE date = ? ORDER BY booked_at ASC')
+-    .all(date);
+-  res.status(201).json({ date, entries });
+-});
+-
+ // Used by the calendar view to mark which dates are red (long queue is blocked).
+ // Rule (UI requirement):
+ // If wave at date D is filled at time T0, then dates from D forward (day-by-day)
+@@ -115,7 +87,7 @@ router.get('/long-status/:yearMonth', requireAuth, (req, res) => {
+   const { yearMonth } = req.params; // e.g. "2026-07"
+   if (!/^\d{4}-\d{2}$/.test(yearMonth)) return res.status(400).json({ error: 'Огноо буруу байна.' });
+ 
+-  // We compute "blocked" intervals based on actual filled waves (wave capacity=3).
++  // We compute "blocked" intervals based on actual filled waves (wave capacity=10).
+   // For each filled wave row, take:
+   //   start = time when 3rd person booked (max booked_at within that wave)
+   //   lockedUntil = start + LOCK_MS
+diff --git a/frontend/app.js b/frontend/app.js
+index 51625a1..0476cda 100644
+--- a/frontend/app.js
++++ b/frontend/app.js
+@@ -1,7 +1,7 @@
+ const API = ''; // same-origin; set to e.g. 'https://api.example.mn' if frontend is hosted separately
+ const $ = (s) => document.querySelector(s);
+ const $$ = (s) => document.querySelectorAll(s);
+-const views = ['gate', 'dash', 'intro', 'feedback', 'longqueue', 'simplequeue', 'news', 'calendar', 'admin'];
++const views = ['gate', 'dash', 'intro', 'feedback', 'longqueue', 'news', 'calendar', 'admin'];
+ 
+ let userToken = localStorage.getItem('khovd457_token') || null;
+ let currentUser = JSON.parse(localStorage.getItem('khovd457_user') || 'null');
+@@ -231,40 +231,6 @@ async function renderLongQueue(date) {
+ }
+ renderLongQueue(todayISO());
+ 
+-// ---------- simple queue ----------
+-$('#sqDate').value = todayISO();
+-$('#sqLoad').addEventListener('click', () => renderSimpleQueue($('#sqDate').value));
+-
+-async function renderSimpleQueue(date) {
+-  if (!date) return;
+-  const el = $('#sqResult');
+-  el.innerHTML = '<div class="empty">Ачааллаж байна...</div>';
+-  try {
+-    const info = await api(`/api/queue/simple/${date}`);
+-    el.innerHTML = `<div class="slot">
+-      <div class="date">${date}</div>
+-      <span class="status open">Бүртгэлтэй: ${info.entries.length} хүн</span>
+-      <div class="who">${info.entries.map((p, i) => `<div>№${i + 1} — ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} <span class="mono">(${p.register})</span></div>`).join('') || '<div>Одоогоор хэн ч бүртгүүлээгүй.</div>'}</div>
+-      <button class="take" id="sqTakeBtn" ${info.alreadyIn ? 'disabled' : ''}>${info.alreadyIn ? 'Та бүртгэлтэй байна (№' + info.myPosition + ')' : 'Дараалалд орох (№' + (info.entries.length + 1) + ')'}</button>
+-    </div>`;
+-    const btn = $('#sqTakeBtn');
+-    if (btn && !btn.disabled) {
+-      btn.addEventListener('click', async () => {
+-        btn.disabled = true;
+-        try {
+-          await api(`/api/queue/simple/${date}`, { method: 'POST' });
+-        } catch (e) {
+-          alert(e.message);
+-        }
+-        renderSimpleQueue(date);
+-      });
+-    }
+-  } catch (e) {
+-    el.innerHTML = `<div class="empty">${escapeHtml(e.message)}</div>`;
+-  }
+-}
+-renderSimpleQueue(todayISO());
+-
+ // ---------- about (organization info) ----------
+ function formatAboutValue(v) {
+   if (v === null || v === undefined) return '';
+@@ -345,7 +311,8 @@ async function renderCalendar() {
+   for (let d = 1; d <= daysInMonth; d++) {
+     const dateStr = `${yearMonth}-${String(d).padStart(2, '0')}`;
+     const isToday = dateStr === todayStr;
+-    cells += `<div class="cal-day ${isToday ? 'today' : ''}">${d}${fullDates.includes(dateStr) ? '<span class="dot"></span>' : ''}</div>`;
++    const isFull = fullDates.includes(dateStr);
++    cells += `<div class="cal-day ${isToday ? 'today' : ''} ${isFull ? 'full' : ''}">${d}</div>`;
+   }
+   $('#calGrid').innerHTML = cells;
+ }
+@@ -394,28 +361,15 @@ async function loadAdminTab(tab) {
+     });
+     const groups = Object.entries(byDateWave);
+     el.innerHTML = groups.length ? groups.map(([key, people]) => {
+-      const [date, wave] = key.split('#');
++      const [date] = key.split('#');
+       return `<div class="slot" style="margin-bottom:10px">
+-        <div class="date">${date} <span style="color:var(--ink-soft);font-weight:400">— ${wave}-р ээлж</span></div>
+-        <span class="status ${people.length >= 3 ? 'full' : 'open'}">${people.length}/3</span>
++        <div class="date">${date}</div>
++        <span class="status ${people.length >= 10 ? 'full' : 'open'}">${people.length}/10</span>
+         <div class="who">${people.map((p) => `<div>• ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} — <span class="mono">(${p.register})</span> — <span class="mono">${p.phone}</span>${p.prisoner_ovog || p.prisoner_ner ? ` — хоригдол: ${escapeHtml(p.prisoner_ovog)} ${escapeHtml(p.prisoner_ner)}${p.relation ? ` (${escapeHtml(p.relation)})` : ''}` : ''}</div>`).join('')}</div>
+       </div>`;
+     }).join('') : '<div class="empty">Урт хугцааны эргэлтэд бүртгэл алга.</div>';
+   }
+ 
+-  if (tab === 'sq') {
+-    const { items } = await api('/api/admin/queue/simple', { admin: true });
+-    const byDate = {};
+-    items.forEach((r) => { (byDate[r.date] = byDate[r.date] || []).push(r); });
+-    const groups = Object.entries(byDate);
+-    el.innerHTML = groups.length ? groups.map(([date, people]) => `
+-      <div class="slot" style="margin-bottom:10px">
+-        <div class="date">${date}</div>
+-        <span class="status open">${people.length} хүн</span>
+-        <div class="who">${people.map((p, i) => `<div>№${i + 1} ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} — <span class="mono">${p.register}</span> — <span class="mono">${p.phone}</span></div>`).join('')}</div>
+-      </div>`).join('') : '<div class="empty">Энгийн эргэлтэд бүртгэл алга.</div>';
+-  }
+-
+   if (tab === 'fb') {
+     const { items } = await api('/api/admin/feedback', { admin: true });
+     el.innerHTML = items.length ? items.map((r) => `
+diff --git a/frontend/index.html b/frontend/index.html
+index 0dc4d93..377dee7 100644
+--- a/frontend/index.html
++++ b/frontend/index.html
+@@ -79,25 +79,19 @@
+         <span class="icon">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+         </span>
+-        <span class="num">3</span><div class="name">Урт хугцааны эргэлт</div><div class="desc">72 цагийн ээлжийн бүртгэл</div>
+-      </div>
+-      <div class="tile" data-go="simplequeue" tabindex="0" role="button">
+-        <span class="icon">
+-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4V7Z"/><path d="M14 7v14" stroke-dasharray="2.5 2.5"/></svg>
+-        </span>
+-        <span class="num">4</span><div class="name">Энгийн эргэлт</div><div class="desc">Өдрийн энгийн ээлжийн бүртгэл</div>
++        <span class="num">3</span><div class="name">Урт хугцааны эргэлт</div><div class="desc">72 цагийн эргэлтийн бүртгэл</div>
+       </div>
+       <div class="tile" data-go="news" tabindex="0" role="button">
+         <span class="icon">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11v6a2 2 0 0 0 2 2h2V9H6a2 2 0 0 0-2 2Z"/><path d="M8 9l10-4v14L8 15"/><path d="M18 9a3 3 0 0 1 0 6"/></svg>
+         </span>
+-        <span class="num">5</span><div class="name">Мэдээ мэдээлэл</div><div class="desc">Сүүлийн үеийн мэдээ</div>
++        <span class="num">4</span><div class="name">Мэдээ мэдээлэл</div><div class="desc">Сүүлийн үеийн мэдээ</div>
+       </div>
+       <div class="tile" data-go="calendar" tabindex="0" role="button">
+         <span class="icon">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/></svg>
+         </span>
+-        <span class="num">6</span><div class="name">Он сар календарь</div><div class="desc">Ажлын хуваарь, эргэлтийн өдрүүд</div>
++        <span class="num">5</span><div class="name">Он сар календарь</div><div class="desc">Ажлын хуваарь, эргэлтийн өдрүүд</div>
+       </div>
+     </div>
+   </div>
+@@ -146,7 +140,7 @@
+   <div id="longqueueView" class="hidden">
+     <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Урт хугцааны эргэлт</h2></div>
+     <div class="card">
+-      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Огноо сонгоод цаг захиална уу. Нэг ээлжинд дээд тал нь 3 хүн бүртгүүлж болно. 3 хүн дүүрмэгц тухайн ээлж 72 цагийн турш идэвхгүй болно, дараа нь дараагийн ээлж автоматаар нээгдэнэ.</p>
++      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Огноо сонгоод цаг захиална уу. Нэг удаагийн эргэлтэд дээд тал нь 10 хүн бүртгүүлж болно. 10 хүн дүүрмэгц тухайн эргэлт 72 цагийн турш идэвхгүй болно (календарь дээр улаанаар харагдана), дараа нь дараагийн эргэлт автоматаар нээгдэнэ.</p>
+       <label>Огноо сонгох</label>
+       <input type="date" id="lqDate">
+       <button class="btn-primary" id="lqLoad" style="margin-top:12px">Харах</button>
+@@ -154,18 +148,6 @@
+     <div id="lqResult" style="margin-top:16px"></div>
+   </div>
+ 
+-  <!-- SIMPLE QUEUE -->
+-  <div id="simplequeueView" class="hidden">
+-    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Энгийн эргэлт</h2></div>
+-    <div class="card">
+-      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Өдрийн энгийн ээлжинд бүртгүүлнэ. Хугцааны хязгаарлалтгүй, дараалсан бүртгэл.</p>
+-      <label>Огноо сонгох</label>
+-      <input type="date" id="sqDate">
+-      <button class="btn-primary" id="sqLoad" style="margin-top:12px">Харах</button>
+-    </div>
+-    <div id="sqResult" style="margin-top:16px"></div>
+-  </div>
+-
+   <!-- NEWS -->
+   <div id="newsView" class="hidden">
+     <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Мэдээ мэдээлэл</h2></div>
+@@ -202,7 +184,6 @@
+       <div class="tab-row">
+         <button class="tab active" data-tab="users">Бүртгэлтэй иргэд</button>
+         <button class="tab" data-tab="lq">Урт хугцааны эргэлт</button>
+-        <button class="tab" data-tab="sq">Энгийн эргэлт</button>
+         <button class="tab" data-tab="fb">Санал хүсэлт</button>
+         <button class="tab" data-tab="news">Мэдээ нэмэх</button>
+       </div>
+diff --git a/frontend/styles.css b/frontend/styles.css
+index 96dcbff..e760d1e 100644
+--- a/frontend/styles.css
++++ b/frontend/styles.css
+@@ -172,7 +172,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);ba
+ .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:clamp(3px,1vw,6px);margin-top:16px;}
+ .cal-day{aspect-ratio:1;border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:clamp(10px,2.4vw,12px);background:var(--paper);position:relative;}
+ .cal-day.today{border-color:var(--gold);background:var(--gold-soft);font-weight:700;}
+-.cal-day .dot{width:5px;height:5px;border-radius:50%;background:var(--warn);position:absolute;bottom:5px;}
++.cal-day.full{background:var(--warn);border-color:var(--warn);color:#fff;font-weight:800;box-shadow:0 0 0 2px var(--warn-bg) inset;}
++.cal-day.full.today{background:var(--warn);border-color:var(--warn);color:#fff;}
+ .cal-dow{text-align:center;font-size:11px;color:var(--ink-soft);font-weight:700;}
+ 
+ .tab-row{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}

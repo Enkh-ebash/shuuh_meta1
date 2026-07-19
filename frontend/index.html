@@ -79,25 +79,19 @@
         <span class="icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
         </span>
-        <span class="num">3</span><div class="name">Урт хугцааны эргэлт</div><div class="desc">72 цагийн ээлжийн бүртгэл</div>
-      </div>
-      <div class="tile" data-go="simplequeue" tabindex="0" role="button">
-        <span class="icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4V7Z"/><path d="M14 7v14" stroke-dasharray="2.5 2.5"/></svg>
-        </span>
-        <span class="num">4</span><div class="name">Энгийн эргэлт</div><div class="desc">Өдрийн энгийн ээлжийн бүртгэл</div>
+        <span class="num">3</span><div class="name">Урт хугцааны эргэлт</div><div class="desc">72 цагийн эргэлтийн бүртгэл</div>
       </div>
       <div class="tile" data-go="news" tabindex="0" role="button">
         <span class="icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11v6a2 2 0 0 0 2 2h2V9H6a2 2 0 0 0-2 2Z"/><path d="M8 9l10-4v14L8 15"/><path d="M18 9a3 3 0 0 1 0 6"/></svg>
         </span>
-        <span class="num">5</span><div class="name">Мэдээ мэдээлэл</div><div class="desc">Сүүлийн үеийн мэдээ</div>
+        <span class="num">4</span><div class="name">Мэдээ мэдээлэл</div><div class="desc">Сүүлийн үеийн мэдээ</div>
       </div>
       <div class="tile" data-go="calendar" tabindex="0" role="button">
         <span class="icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/></svg>
         </span>
-        <span class="num">6</span><div class="name">Он сар календарь</div><div class="desc">Ажлын хуваарь, эргэлтийн өдрүүд</div>
+        <span class="num">5</span><div class="name">Он сар календарь</div><div class="desc">Ажлын хуваарь, эргэлтийн өдрүүд</div>
       </div>
     </div>
   </div>
@@ -146,24 +140,12 @@
   <div id="longqueueView" class="hidden">
     <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Урт хугцааны эргэлт</h2></div>
     <div class="card">
-      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Огноо сонгоод цаг захиална уу. Нэг ээлжинд дээд тал нь 3 хүн бүртгүүлж болно. 3 хүн дүүрмэгц тухайн ээлж 72 цагийн турш идэвхгүй болно, дараа нь дараагийн ээлж автоматаар нээгдэнэ.</p>
+      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Огноо сонгоод цаг захиална уу. Нэг удаагийн эргэлтэд дээд тал нь 10 хүн бүртгүүлж болно. 10 хүн дүүрмэгц тухайн эргэлт 72 цагийн турш идэвхгүй болно (календарь дээр улаанаар харагдана), дараа нь дараагийн эргэлт автоматаар нээгдэнэ.</p>
       <label>Огноо сонгох</label>
       <input type="date" id="lqDate">
       <button class="btn-primary" id="lqLoad" style="margin-top:12px">Харах</button>
     </div>
     <div id="lqResult" style="margin-top:16px"></div>
-  </div>
-
-  <!-- SIMPLE QUEUE -->
-  <div id="simplequeueView" class="hidden">
-    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Энгийн эргэлт</h2></div>
-    <div class="card">
-      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Өдрийн энгийн ээлжинд бүртгүүлнэ. Хугцааны хязгаарлалтгүй, дараалсан бүртгэл.</p>
-      <label>Огноо сонгох</label>
-      <input type="date" id="sqDate">
-      <button class="btn-primary" id="sqLoad" style="margin-top:12px">Харах</button>
-    </div>
-    <div id="sqResult" style="margin-top:16px"></div>
   </div>
 
   <!-- NEWS -->
@@ -202,7 +184,6 @@
       <div class="tab-row">
         <button class="tab active" data-tab="users">Бүртгэлтэй иргэд</button>
         <button class="tab" data-tab="lq">Урт хугцааны эргэлт</button>
-        <button class="tab" data-tab="sq">Энгийн эргэлт</button>
         <button class="tab" data-tab="fb">Санал хүсэлт</button>
         <button class="tab" data-tab="news">Мэдээ нэмэх</button>
       </div>

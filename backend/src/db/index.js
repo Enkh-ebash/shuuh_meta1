@@ -31,7 +31,9 @@ CREATE TABLE IF NOT EXISTS admins (
 );
 
 -- Long-duration queue ("урт хугцааны эргэлт"): each date can have multiple "waves".
--- A wave holds up to 3 people; once full, it locks for 72 hours; after that a new wave opens.
+-- A wave (rotation) holds up to 10 people; once full, it locks for 72 hours; after that
+-- a new wave opens automatically. Waves are not numbered/labeled as "shifts" to users —
+-- it's presented as one continuous rotation that refills after each 72h lock.
 CREATE TABLE IF NOT EXISTS long_queue (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   date TEXT NOT NULL,
@@ -45,18 +47,6 @@ CREATE TABLE IF NOT EXISTS long_queue (
   prisoner_ner TEXT NOT NULL DEFAULT '',
   relation TEXT NOT NULL DEFAULT '',
   UNIQUE(date, wave, register)
-);
-
--- Regular queue ("энгийн эргэлт"): simple ordered daily sign-up, no capacity lock.
-CREATE TABLE IF NOT EXISTS simple_queue (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  date TEXT NOT NULL,
-  register TEXT NOT NULL,
-  ovog TEXT NOT NULL,
-  ner TEXT NOT NULL,
-  phone TEXT NOT NULL,
-  booked_at INTEGER NOT NULL,
-  UNIQUE(date, register)
 );
 
 CREATE TABLE IF NOT EXISTS feedback (
@@ -80,7 +70,6 @@ CREATE TABLE IF NOT EXISTS news (
 );
 
 CREATE INDEX IF NOT EXISTS idx_long_queue_date ON long_queue(date);
-CREATE INDEX IF NOT EXISTS idx_simple_queue_date ON simple_queue(date);
 
 -- Organization info shown in the intro page.
 CREATE TABLE IF NOT EXISTS about_info (

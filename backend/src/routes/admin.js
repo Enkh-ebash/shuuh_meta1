@@ -28,13 +28,6 @@ router.get('/queue/long', requireAdmin, (req, res) => {
   res.json({ items: rows });
 });
 
-router.get('/queue/simple', requireAdmin, (req, res) => {
-  const rows = db
-    .prepare('SELECT date, register, ovog, ner, phone, booked_at FROM simple_queue ORDER BY date DESC, booked_at ASC')
-    .all();
-  res.json({ items: rows });
-});
-
 router.get('/feedback', requireAdmin, (req, res) => {
   const rows = db.prepare('SELECT * FROM feedback ORDER BY created_at DESC').all();
   res.json({ items: rows });

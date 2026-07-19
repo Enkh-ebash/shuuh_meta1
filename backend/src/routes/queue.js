@@ -5,7 +5,7 @@ const { isValidDate, cleanName, isValidRelation } = require('../util/validate');
 
 const router = express.Router();
 const LOCK_MS = 72 * 60 * 60 * 1000; // 72 hours
-const WAVE_CAPACITY = 3;
+const WAVE_CAPACITY = 10;
 
 // Compute the currently-active wave for a date: the wave people should see/book into.
 // If the latest wave is full and still within its 72h lock, it is returned as 'full'
@@ -78,34 +78,6 @@ router.post('/long/:date', requireAuth, (req, res) => {
   res.status(201).json(getCurrentLongWave(date));
 });
 
-router.get('/simple/:date', requireAuth, (req, res) => {
-  const { date } = req.params;
-  if (!isValidDate(date)) return res.status(400).json({ error: 'Огноо буруу байна.' });
-  const entries = db
-    .prepare('SELECT register, ovog, ner, phone, booked_at FROM simple_queue WHERE date = ? ORDER BY booked_at ASC')
-    .all(date);
-  const myIndex = entries.findIndex((e) => e.register === req.user.sub);
-  res.json({ date, entries, alreadyIn: myIndex >= 0, myPosition: myIndex >= 0 ? myIndex + 1 : null });
-});
-
-router.post('/simple/:date', requireAuth, (req, res) => {
-  const { date } = req.params;
-  if (!isValidDate(date)) return res.status(400).json({ error: 'Огноо буруу байна.' });
-
-  try {
-    db.prepare(
-      'INSERT INTO simple_queue (date, register, ovog, ner, phone, booked_at) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(date, req.user.sub, req.user.ovog, req.user.ner, req.user.phone, Date.now());
-  } catch (e) {
-    return res.status(409).json({ error: 'Та энэ өдрийн дараалалд аль хэдийн бүртгэлтэй байна.' });
-  }
-
-  const entries = db
-    .prepare('SELECT register, ovog, ner, phone, booked_at FROM simple_queue WHERE date = ? ORDER BY booked_at ASC')
-    .all(date);
-  res.status(201).json({ date, entries });
-});
-
 // Used by the calendar view to mark which dates are red (long queue is blocked).
 // Rule (UI requirement):
 // If wave at date D is filled at time T0, then dates from D forward (day-by-day)
@@ -115,7 +87,7 @@ router.get('/long-status/:yearMonth', requireAuth, (req, res) => {
   const { yearMonth } = req.params; // e.g. "2026-07"
   if (!/^\d{4}-\d{2}$/.test(yearMonth)) return res.status(400).json({ error: 'Огноо буруу байна.' });
 
-  // We compute "blocked" intervals based on actual filled waves (wave capacity=3).
+  // We compute "blocked" intervals based on actual filled waves (wave capacity=10).
   // For each filled wave row, take:
   //   start = time when 3rd person booked (max booked_at within that wave)
   //   lockedUntil = start + LOCK_MS

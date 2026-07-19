@@ -1,7 +1,7 @@
 const API = ''; // same-origin; set to e.g. 'https://api.example.mn' if frontend is hosted separately
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
-const views = ['gate', 'dash', 'intro', 'feedback', 'longqueue', 'simplequeue', 'news', 'calendar', 'admin'];
+const views = ['gate', 'dash', 'intro', 'feedback', 'longqueue', 'news', 'calendar', 'admin'];
 
 let userToken = localStorage.getItem('khovd457_token') || null;
 let currentUser = JSON.parse(localStorage.getItem('khovd457_user') || 'null');
@@ -231,40 +231,6 @@ async function renderLongQueue(date) {
 }
 renderLongQueue(todayISO());
 
-// ---------- simple queue ----------
-$('#sqDate').value = todayISO();
-$('#sqLoad').addEventListener('click', () => renderSimpleQueue($('#sqDate').value));
-
-async function renderSimpleQueue(date) {
-  if (!date) return;
-  const el = $('#sqResult');
-  el.innerHTML = '<div class="empty">Ачааллаж байна...</div>';
-  try {
-    const info = await api(`/api/queue/simple/${date}`);
-    el.innerHTML = `<div class="slot">
-      <div class="date">${date}</div>
-      <span class="status open">Бүртгэлтэй: ${info.entries.length} хүн</span>
-      <div class="who">${info.entries.map((p, i) => `<div>№${i + 1} — ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} <span class="mono">(${p.register})</span></div>`).join('') || '<div>Одоогоор хэн ч бүртгүүлээгүй.</div>'}</div>
-      <button class="take" id="sqTakeBtn" ${info.alreadyIn ? 'disabled' : ''}>${info.alreadyIn ? 'Та бүртгэлтэй байна (№' + info.myPosition + ')' : 'Дараалалд орох (№' + (info.entries.length + 1) + ')'}</button>
-    </div>`;
-    const btn = $('#sqTakeBtn');
-    if (btn && !btn.disabled) {
-      btn.addEventListener('click', async () => {
-        btn.disabled = true;
-        try {
-          await api(`/api/queue/simple/${date}`, { method: 'POST' });
-        } catch (e) {
-          alert(e.message);
-        }
-        renderSimpleQueue(date);
-      });
-    }
-  } catch (e) {
-    el.innerHTML = `<div class="empty">${escapeHtml(e.message)}</div>`;
-  }
-}
-renderSimpleQueue(todayISO());
-
 // ---------- about (organization info) ----------
 function formatAboutValue(v) {
   if (v === null || v === undefined) return '';
@@ -345,7 +311,8 @@ async function renderCalendar() {
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${yearMonth}-${String(d).padStart(2, '0')}`;
     const isToday = dateStr === todayStr;
-    cells += `<div class="cal-day ${isToday ? 'today' : ''}">${d}${fullDates.includes(dateStr) ? '<span class="dot"></span>' : ''}</div>`;
+    const isFull = fullDates.includes(dateStr);
+    cells += `<div class="cal-day ${isToday ? 'today' : ''} ${isFull ? 'full' : ''}">${d}</div>`;
   }
   $('#calGrid').innerHTML = cells;
 }
@@ -394,26 +361,13 @@ async function loadAdminTab(tab) {
     });
     const groups = Object.entries(byDateWave);
     el.innerHTML = groups.length ? groups.map(([key, people]) => {
-      const [date, wave] = key.split('#');
+      const [date] = key.split('#');
       return `<div class="slot" style="margin-bottom:10px">
-        <div class="date">${date} <span style="color:var(--ink-soft);font-weight:400">— ${wave}-р ээлж</span></div>
-        <span class="status ${people.length >= 3 ? 'full' : 'open'}">${people.length}/3</span>
+        <div class="date">${date}</div>
+        <span class="status ${people.length >= 10 ? 'full' : 'open'}">${people.length}/10</span>
         <div class="who">${people.map((p) => `<div>• ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} — <span class="mono">(${p.register})</span> — <span class="mono">${p.phone}</span>${p.prisoner_ovog || p.prisoner_ner ? ` — хоригдол: ${escapeHtml(p.prisoner_ovog)} ${escapeHtml(p.prisoner_ner)}${p.relation ? ` (${escapeHtml(p.relation)})` : ''}` : ''}</div>`).join('')}</div>
       </div>`;
     }).join('') : '<div class="empty">Урт хугцааны эргэлтэд бүртгэл алга.</div>';
-  }
-
-  if (tab === 'sq') {
-    const { items } = await api('/api/admin/queue/simple', { admin: true });
-    const byDate = {};
-    items.forEach((r) => { (byDate[r.date] = byDate[r.date] || []).push(r); });
-    const groups = Object.entries(byDate);
-    el.innerHTML = groups.length ? groups.map(([date, people]) => `
-      <div class="slot" style="margin-bottom:10px">
-        <div class="date">${date}</div>
-        <span class="status open">${people.length} хүн</span>
-        <div class="who">${people.map((p, i) => `<div>№${i + 1} ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} — <span class="mono">${p.register}</span> — <span class="mono">${p.phone}</span></div>`).join('')}</div>
-      </div>`).join('') : '<div class="empty">Энгийн эргэлтэд бүртгэл алга.</div>';
   }
 
   if (tab === 'fb') {
