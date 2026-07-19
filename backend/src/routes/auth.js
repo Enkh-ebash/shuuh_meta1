@@ -10,7 +10,7 @@ const router = express.Router();
 // already exists, the phone number must match (acts as a lightweight identity check).
 // NOTE: for production, replace this with real identity verification (e.g. SMS OTP
 // or an integration with the national civil registry / e-Mongolia API).
-router.post('/register-or-login', (req, res) => {
+router.post('/register-or-login', async (req, res) => {
   const ovog = cleanName(req.body.ovog);
   const ner = cleanName(req.body.ner);
   const register = (req.body.register || '').trim().toUpperCase();
@@ -26,7 +26,7 @@ router.post('/register-or-login', (req, res) => {
     return res.status(400).json({ error: 'Утасны дугаар 8 оронтой байна.' });
   }
 
-  const existing = db.prepare('SELECT * FROM users WHERE register = ?').get(register);
+  const existing = await db.prepare('SELECT * FROM users WHERE register = ?').get(register);
 
   if (existing) {
     if (existing.phone !== phone) {
@@ -39,7 +39,7 @@ router.post('/register-or-login', (req, res) => {
   }
 
   const now = Date.now();
-  db.prepare('INSERT INTO users (ovog, ner, register, phone, created_at) VALUES (?, ?, ?, ?, ?)')
+  await db.prepare('INSERT INTO users (ovog, ner, register, phone, created_at) VALUES (?, ?, ?, ?, ?)')
     .run(ovog, ner, register, phone, now);
 
   const user = { ovog, ner, register, phone };

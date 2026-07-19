@@ -50,6 +50,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Серверийн алдаа гарлаа.' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Khovd-457 API сервер http://localhost:${PORT} дээр ажиллаж байна`);
+db.ready.then(() => {
+  app.listen(PORT, () => {
+    console.log(`Khovd-457 API сервер http://localhost:${PORT} дээр ажиллаж байна`);
+  });
 });

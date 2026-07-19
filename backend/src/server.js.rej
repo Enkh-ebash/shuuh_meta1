@@ -1,0 +1,19 @@
+diff a/backend/src/server.js b/backend/src/server.js	(rejected hunks)
+@@ -10,11 +10,17 @@ const feedbackRoutes = require('./routes/feedback');
+ const newsRoutes = require('./routes/news');
+ const adminRoutes = require('./routes/admin');
+ const aboutRoutes = require('./routes/about');
++const db = require('./db');
+ 
+ 
+ const app = express();
+ const PORT = process.env.PORT || 3000;
+ 
++// Render (and most PaaS hosts) sit behind a reverse proxy that sets
++// X-Forwarded-For. Without this, express-rate-limit can't safely identify
++// the real client IP and throws on every request.
++app.set('trust proxy', 1);
++
+ app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+ app.use(express.json({ limit: '200kb' }));
+ 

@@ -1,0 +1,81 @@
+diff a/backend/src/routes/queue.js b/backend/src/routes/queue.js	(rejected hunks)
+@@ -5,16 +5,16 @@ const { isValidDate, cleanName, isValidRelation } = require('../util/validate');
+ 
+ const router = express.Router();
+ const LOCK_MS = 72 * 60 * 60 * 1000; // 72 hours
+-const WAVE_CAPACITY = 3;
++const WAVE_CAPACITY = 10;
+ 
+ // Compute the currently-active wave for a date: the wave people should see/book into.
+ // If the latest wave is full and still within its 72h lock, it is returned as 'full'
+ // (read-only). Once 72h has elapsed since it filled, a fresh (empty) wave is "opened"
+ // automatically — no cron job needed, it's computed on read.
+-function getCurrentLongWave(date) {
+-  const row = db.prepare('SELECT MAX(wave) as w FROM long_queue WHERE date = ?').get(date);
++async function getCurrentLongWave(date) {
++  const row = await db.prepare('SELECT MAX(wave) as w FROM long_queue WHERE date = ?').get(date);
+   const maxWave = row.w || 1;
+-  const entries = db
++  const entries = await db
+     .prepare('SELECT register, ovog, ner, phone, prisoner_ovog, prisoner_ner, relation, booked_at FROM long_queue WHERE date = ? AND wave = ? ORDER BY booked_at ASC')
+     .all(date, maxWave);
+ 
+@@ -68,42 +68,14 @@ router.post('/long/:date', requireAuth, (req, res) => {
+   const relation = relationChoice === 'бусад' ? `Бусад: ${relationOther}` : relationChoice;
+ 
+   try {
+-    db.prepare(
++    await db.prepare(
+       'INSERT INTO long_queue (date, wave, register, ovog, ner, phone, prisoner_ovog, prisoner_ner, relation, booked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+     ).run(date, info.wave, req.user.sub, req.user.ovog, req.user.ner, req.user.phone, prisonerOvog, prisonerNer, relation, Date.now());
+   } catch (e) {
+     return res.status(409).json({ error: 'Захиалга авахад алдаа гарлаа. Дахин оролдоно уу.' });
+   }
+ 
+-  res.status(201).json(getCurrentLongWave(date));
+-});
+-
+-router.get('/simple/:date', requireAuth, (req, res) => {
+-  const { date } = req.params;
+-  if (!isValidDate(date)) return res.status(400).json({ error: 'Огноо буруу байна.' });
+-  const entries = db
+-    .prepare('SELECT register, ovog, ner, phone, booked_at FROM simple_queue WHERE date = ? ORDER BY booked_at ASC')
+-    .all(date);
+-  const myIndex = entries.findIndex((e) => e.register === req.user.sub);
+-  res.json({ date, entries, alreadyIn: myIndex >= 0, myPosition: myIndex >= 0 ? myIndex + 1 : null });
+-});
+-
+-router.post('/simple/:date', requireAuth, (req, res) => {
+-  const { date } = req.params;
+-  if (!isValidDate(date)) return res.status(400).json({ error: 'Огноо буруу байна.' });
+-
+-  try {
+-    db.prepare(
+-      'INSERT INTO simple_queue (date, register, ovog, ner, phone, booked_at) VALUES (?, ?, ?, ?, ?, ?)'
+-    ).run(date, req.user.sub, req.user.ovog, req.user.ner, req.user.phone, Date.now());
+-  } catch (e) {
+-    return res.status(409).json({ error: 'Та энэ өдрийн дараалалд аль хэдийн бүртгэлтэй байна.' });
+-  }
+-
+-  const entries = db
+-    .prepare('SELECT register, ovog, ner, phone, booked_at FROM simple_queue WHERE date = ? ORDER BY booked_at ASC')
+-    .all(date);
+-  res.status(201).json({ date, entries });
++  res.status(201).json(await getCurrentLongWave(date));
+ });
+ 
+ // Used by the calendar view to mark which dates are red (long queue is blocked).
+@@ -111,11 +83,11 @@ router.post('/simple/:date', requireAuth, (req, res) => {
+ // If wave at date D is filled at time T0, then dates from D forward (day-by-day)
+ // remain red for the next 72 hours. At the exact unlock moment, marking should
+ // stop (i.e., D+3 days should turn non-red).
+-router.get('/long-status/:yearMonth', requireAuth, (req, res) => {
++router.get('/long-status/:yearMonth', requireAuth, async (req, res) => {
+   const { yearMonth } = req.params; // e.g. "2026-07"
+   if (!/^\d{4}-\d{2}$/.test(yearMonth)) return res.status(400).json({ error: 'Огноо буруу байна.' });
+ 
+-  // We compute "blocked" intervals based on actual filled waves (wave capacity=3).
++  // We compute "blocked" intervals based on actual filled waves (wave capacity=10).
+   // For each filled wave row, take:
+   //   start = time when 3rd person booked (max booked_at within that wave)
+   //   lockedUntil = start + LOCK_MS

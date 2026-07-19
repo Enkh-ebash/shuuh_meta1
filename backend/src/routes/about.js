@@ -4,8 +4,8 @@ const router = express.Router();
 
 // Public: GET /api/about
 // Returns organization/contact info used by the frontend.
-router.get('/', (req, res) => {
-  const row = db
+router.get('/', async (req, res) => {
+  const row = await db
     .prepare(
       'SELECT phone, email, address, social, org_type, register_no, founded_at, tax_id, activity_code, activity_main, is_branch, parent_org, org_full_address, responsibilities, budget_admin, accountant FROM about_info WHERE id = 1'
     )

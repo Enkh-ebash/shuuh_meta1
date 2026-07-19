@@ -29,19 +29,19 @@ function getCurrentLongWave(date) {
   return { wave: maxWave, entries, status: 'open', lockedUntil: null };
 }
 
-router.get('/long/:date', requireAuth, (req, res) => {
+router.get('/long/:date', requireAuth, async (req, res) => {
   const { date } = req.params;
   if (!isValidDate(date)) return res.status(400).json({ error: 'Огноо буруу байна.' });
-  const info = getCurrentLongWave(date);
+  const info = await getCurrentLongWave(date);
   const alreadyIn = info.entries.some((e) => e.register === req.user.sub);
   res.json({ date, ...info, alreadyIn, capacity: WAVE_CAPACITY });
 });
 
-router.post('/long/:date', requireAuth, (req, res) => {
+router.post('/long/:date', requireAuth, async (req, res) => {
   const { date } = req.params;
   if (!isValidDate(date)) return res.status(400).json({ error: 'Огноо буруу байна.' });
 
-  const info = getCurrentLongWave(date);
+  const info = await getCurrentLongWave(date);
   if (info.status === 'full') {
     return res.status(409).json({ error: 'Энэ өдөр дүүрсэн байна. Дараагийн ээлж нээгдэх хүртэл хүлээнэ үү.', lockedUntil: info.lockedUntil });
   }
@@ -96,7 +96,7 @@ router.get('/long-status/:yearMonth', requireAuth, (req, res) => {
 
   // Query all waves within the month.
   // Each distinct (date, wave) can be evaluated.
-  const waves = db
+  const waves = await db
     .prepare(
       'SELECT date, wave, COUNT(*) as cnt, MAX(booked_at) as last_booked_at FROM long_queue WHERE date LIKE ? GROUP BY date, wave'
     )

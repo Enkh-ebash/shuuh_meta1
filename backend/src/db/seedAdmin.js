@@ -15,15 +15,24 @@ if (password.length < 8) {
   process.exit(1);
 }
 
-const hash = bcrypt.hashSync(password, 10);
-const existing = db.prepare('SELECT id FROM admins WHERE username = ?').get(username);
+(async () => {
+  await db.ready;
 
-if (existing) {
-  db.prepare('UPDATE admins SET password_hash = ?, display_name = ? WHERE username = ?')
-    .run(hash, displayName || username, username);
-  console.log(`Admin "${username}" нууц үгийг шинэчиллээ.`);
-} else {
-  db.prepare('INSERT INTO admins (username, password_hash, display_name, created_at) VALUES (?, ?, ?, ?)')
-    .run(username, hash, displayName || username, Date.now());
-  console.log(`Admin "${username}" амжилттай үүслээ.`);
-}
+  const hash = bcrypt.hashSync(password, 10);
+  const existing = await db.prepare('SELECT id FROM admins WHERE username = ?').get(username);
+
+  if (existing) {
+    await db.prepare('UPDATE admins SET password_hash = ?, display_name = ? WHERE username = ?')
+      .run(hash, displayName || username, username);
+    console.log(`Admin "${username}" нууц үгийг шинэчиллээ.`);
+  } else {
+    await db.prepare('INSERT INTO admins (username, password_hash, display_name, created_at) VALUES (?, ?, ?, ?)')
+      .run(username, hash, displayName || username, Date.now());
+    console.log(`Admin "${username}" амжилттай үүслээ.`);
+  }
+
+  process.exit(0);
+})().catch((e) => {
+  console.error('Алдаа:', e.message);
+  process.exit(1);
+});

@@ -5,10 +5,10 @@ const { signAdminToken, requireAdmin } = require('../util/auth');
 
 const router = express.Router();
 
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const username = (req.body.username || '').trim();
   const password = req.body.password || '';
-  const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get(username);
+  const admin = await db.prepare('SELECT * FROM admins WHERE username = ?').get(username);
   if (!admin || !bcrypt.compareSync(password, admin.password_hash)) {
     return res.status(401).json({ error: 'Нэвтрэх нэр эсвэл нууц үг буруу байна.' });
   }

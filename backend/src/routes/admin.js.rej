@@ -1,0 +1,68 @@
+diff a/backend/src/routes/admin.js b/backend/src/routes/admin.js	(rejected hunks)
+@@ -16,54 +16,47 @@ router.post('/login', (req, res) => {
+   res.json({ token, displayName: admin.display_name });
+ });
+ 
+-router.get('/users', requireAdmin, (req, res) => {
+-  const rows = db.prepare('SELECT ovog, ner, register, phone, created_at FROM users ORDER BY created_at DESC').all();
++router.get('/users', requireAdmin, async (req, res) => {
++  const rows = await db.prepare('SELECT ovog, ner, register, phone, created_at FROM users ORDER BY created_at DESC').all();
+   res.json({ items: rows });
+ });
+ 
+-router.get('/queue/long', requireAdmin, (req, res) => {
+-  const rows = db
++router.get('/queue/long', requireAdmin, async (req, res) => {
++  const rows = await db
+     .prepare('SELECT date, wave, register, ovog, ner, phone, prisoner_ovog, prisoner_ner, relation, booked_at FROM long_queue ORDER BY date DESC, wave DESC, booked_at ASC')
+     .all();
+   res.json({ items: rows });
+ });
+ 
+-router.get('/queue/simple', requireAdmin, (req, res) => {
+-  const rows = db
+-    .prepare('SELECT date, register, ovog, ner, phone, booked_at FROM simple_queue ORDER BY date DESC, booked_at ASC')
+-    .all();
+-  res.json({ items: rows });
+-});
+-
+-router.get('/feedback', requireAdmin, (req, res) => {
+-  const rows = db.prepare('SELECT * FROM feedback ORDER BY created_at DESC').all();
++router.get('/feedback', requireAdmin, async (req, res) => {
++  const rows = await db.prepare('SELECT * FROM feedback ORDER BY created_at DESC').all();
+   res.json({ items: rows });
+ });
+ 
+-router.patch('/feedback/:id/status', requireAdmin, (req, res) => {
++router.patch('/feedback/:id/status', requireAdmin, async (req, res) => {
+   const { id } = req.params;
+   const status = (req.body.status || '').trim();
+   if (!['new', 'reviewed', 'resolved'].includes(status)) {
+     return res.status(400).json({ error: 'Статус буруу байна.' });
+   }
+-  db.prepare('UPDATE feedback SET status = ? WHERE id = ?').run(status, id);
++  await db.prepare('UPDATE feedback SET status = ? WHERE id = ?').run(status, id);
+   res.json({ ok: true });
+ });
+ 
+-router.post('/news', requireAdmin, (req, res) => {
++router.post('/news', requireAdmin, async (req, res) => {
+   const title = (req.body.title || '').trim().slice(0, 200);
+   const body = (req.body.body || '').trim().slice(0, 4000);
+   const imgUrl = (req.body.img_url || '').trim().slice(0, 1000) || null;
+   if (!title || !body) return res.status(400).json({ error: 'Гарчиг болон агуулгыг бөглөнө үү.' });
+ 
+-  db.prepare('INSERT INTO news (title, body, img_url, created_at) VALUES (?, ?, ?, ?)').run(
++  await db.prepare('INSERT INTO news (title, body, img_url, created_at) VALUES (?, ?, ?, ?)').run(
+     title, body, imgUrl, Date.now()
+   );
+   res.status(201).json({ ok: true });
+ });
+ 
+-router.delete('/news/:id', requireAdmin, (req, res) => {
+-  db.prepare('DELETE FROM news WHERE id = ?').run(req.params.id);
++router.delete('/news/:id', requireAdmin, async (req, res) => {
++  await db.prepare('DELETE FROM news WHERE id = ?').run(req.params.id);
+   res.json({ ok: true });
+ });
+ 
