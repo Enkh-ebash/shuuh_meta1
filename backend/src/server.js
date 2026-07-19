@@ -15,6 +15,10 @@ const aboutRoutes = require('./routes/about');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Render (болон ихэнх PaaS сервис) proxy ард ажилладаг тул
+// X-Forwarded-For header-ийг итгэмжлэхийг зааж өгөх ёстой.
+app.set('trust proxy', 1);
+
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json({ limit: '200kb' }));
 
