@@ -10,7 +10,7 @@ const feedbackRoutes = require('./routes/feedback');
 const newsRoutes = require('./routes/news');
 const adminRoutes = require('./routes/admin');
 const aboutRoutes = require('./routes/about');
-+const db = require('./db');
+const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
