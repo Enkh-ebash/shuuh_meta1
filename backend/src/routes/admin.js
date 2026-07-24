@@ -61,3 +61,4 @@ router.delete('/news/:id', requireAdmin, async (req, res) => {
 });
 
 module.exports = router;
+//sync try
