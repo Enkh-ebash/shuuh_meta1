@@ -1,3 +1,4 @@
+cat > ~/shuuh_meta1/backend/src/routes/queue.js << 'CLAUDE_EOF'
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../util/auth');
@@ -167,3 +168,4 @@ router.get('/long-status/:yearMonth', requireAuth, async (req, res) => {
 
 
 module.exports = router;
+CLAUDE_EOF
