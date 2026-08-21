@@ -3,7 +3,7 @@
 // 1) Drops the stale `simple_queue` table (leftover from the retired "энгийн
 //    эргэлт" feature — no longer created or read by the app, but old installs
 //    still have it).
-// 2) Wipes ALL registered citizen accounts, ALL long-queue (урт хугцааны
+// 2) Wipes ALL registered citizen accounts, ALL long-queue (удаан хугацааны
 //    эргэлт) bookings, and ALL feedback (санал хүсэлт).
 //
 // This does NOT touch: admins, news, about_info.

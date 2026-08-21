@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS admins (
   created_at INTEGER NOT NULL
 );
 
--- Long-duration queue ("урт хугцааны эргэлт"): each date can have multiple "waves".
+-- Long-duration queue ("удаан хугацааны эргэлт"): each date can have multiple "waves".
 -- A wave (rotation) holds up to 10 people; once full, it locks for 72 hours; after that
 -- a new wave opens automatically. Waves are not numbered/labeled as "shifts" to users —
 -- it's presented as one continuous rotation that refills after each 72h lock.

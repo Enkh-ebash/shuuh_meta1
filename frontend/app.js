@@ -367,7 +367,7 @@ async function loadAdminTab(tab) {
         <span class="status ${people.length >= 10 ? 'full' : 'open'}">${people.length}/10</span>
         <div class="who">${people.map((p) => `<div>• ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} — <span class="mono">(${p.register})</span> — <span class="mono">${p.phone}</span>${p.prisoner_ovog || p.prisoner_ner ? ` — хоригдол: ${escapeHtml(p.prisoner_ovog)} ${escapeHtml(p.prisoner_ner)}${p.relation ? ` (${escapeHtml(p.relation)})` : ''}` : ''}</div>`).join('')}</div>
       </div>`;
-    }).join('') : '<div class="empty">Урт хугцааны эргэлтэд бүртгэл алга.</div>';
+    }).join('') : '<div class="empty">Удаан хугацааны эргэлтэд бүртгэл алга.</div>';
   }
 
   if (tab === 'fb') {

@@ -1,0 +1,132 @@
+diff --git a/backend/scripts/reset-data.js b/backend/scripts/reset-data.js
+index cf51f28..4b03153 100644
+--- a/backend/scripts/reset-data.js
++++ b/backend/scripts/reset-data.js
+@@ -3,7 +3,7 @@
+ // 1) Drops the stale `simple_queue` table (leftover from the retired "энгийн
+ //    эргэлт" feature — no longer created or read by the app, but old installs
+ //    still have it).
+-// 2) Wipes ALL registered citizen accounts, ALL long-queue (урт хугцааны
++// 2) Wipes ALL registered citizen accounts, ALL long-queue (удаан хугацааны
+ //    эргэлт) bookings, and ALL feedback (санал хүсэлт).
+ //
+ // This does NOT touch: admins, news, about_info.
+diff --git a/backend/src/db/index.js b/backend/src/db/index.js
+index f463d68..d522f1d 100644
+--- a/backend/src/db/index.js
++++ b/backend/src/db/index.js
+@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS admins (
+   created_at INTEGER NOT NULL
+ );
+ 
+--- Long-duration queue ("урт хугцааны эргэлт"): each date can have multiple "waves".
++-- Long-duration queue ("удаан хугацааны эргэлт"): each date can have multiple "waves".
+ -- A wave (rotation) holds up to 10 people; once full, it locks for 72 hours; after that
+ -- a new wave opens automatically. Waves are not numbered/labeled as "shifts" to users —
+ -- it's presented as one continuous rotation that refills after each 72h lock.
+diff --git a/frontend/app.js b/frontend/app.js
+index 0476cda..ae5778c 100644
+--- a/frontend/app.js
++++ b/frontend/app.js
+@@ -367,7 +367,7 @@ async function loadAdminTab(tab) {
+         <span class="status ${people.length >= 10 ? 'full' : 'open'}">${people.length}/10</span>
+         <div class="who">${people.map((p) => `<div>• ${escapeHtml(p.ovog)} ${escapeHtml(p.ner)} — <span class="mono">(${p.register})</span> — <span class="mono">${p.phone}</span>${p.prisoner_ovog || p.prisoner_ner ? ` — хоригдол: ${escapeHtml(p.prisoner_ovog)} ${escapeHtml(p.prisoner_ner)}${p.relation ? ` (${escapeHtml(p.relation)})` : ''}` : ''}</div>`).join('')}</div>
+       </div>`;
+-    }).join('') : '<div class="empty">Урт хугцааны эргэлтэд бүртгэл алга.</div>';
++    }).join('') : '<div class="empty">Удаан хугацааны эргэлтэд бүртгэл алга.</div>';
+   }
+ 
+   if (tab === 'fb') {
+diff --git a/frontend/index.html b/frontend/index.html
+index 12d305b..2656172 100644
+--- a/frontend/index.html
++++ b/frontend/index.html
+@@ -79,7 +79,7 @@
+         <span class="icon">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+         </span>
+-        <span class="num">3</span><div class="name">Урт хугцааны эргэлт</div><div class="desc">72 цагийн эргэлтийн бүртгэл</div>
++        <span class="num">3</span><div class="name">Удаан хугацааны эргэлт</div><div class="desc">72 цагийн эргэлтийн бүртгэл</div>
+       </div>
+       <div class="tile" data-go="news" tabindex="0" role="button">
+         <span class="icon">
+@@ -138,7 +138,40 @@
+ 
+   <!-- LONG QUEUE -->
+   <div id="longqueueView" class="hidden">
+-    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Урт хугцааны эргэлт</h2></div>
++    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Удаан хугацааны эргэлт</h2></div>
++
++    <div class="card service-detail">
++      <h3 class="sd-title">ХОРИХ АНГИЙН ХОРИГДЛЫН УДААН ХУГАЦААНЫ УУЛЗАЛТ</h3>
++
++      <div class="sd-row"><span class="sd-label">Шийдвэрлэх хугацаа хэлбэр:</span>Ажлын өдрүүдэд 09:00-16:00 цагийн хооронд</div>
++
++      <div class="sd-row">
++        <span class="sd-label">Үйлчилгээг авахад анхаарах зүйлс:</span>
++        Хууль зүй, дотоод хэргийн сайдын 2017 оны 07 дугаар сарын 04-ний өдрийн А/183 дугаар тушаалаар батлагдсан "Хорих ангийн дотоод журам"-ын 15, 16, 17 дугаар хэсэгт зааснаар уулзуулна.
++      </div>
++
++      <div class="sd-subhead">Үйлчилгээг авахад бүрдүүлэх материалын жагсаалт</div>
++      <table>
++        <thead><tr><th>№</th><th>Бүрдүүлэх материалын жагсаалт</th><th>Тайлбар</th></tr></thead>
++        <tbody>
++          <tr><td>1.</td><td>Тоо бүртгэлийн ажилтнаас удаан хугацааны эргэлтийн хуудас авч үнэн зөв бөглөнө.</td><td>Тухайн хүмүүжигчийн хамаатан, төрөл садан, нотлох баримт бичиг, гэрлэлтийн батлахтайгаа ирж үйлчлүүлнэ.</td></tr>
++          <tr><td>2.</td><td>Эргэлтийн хуудсаа тоо бүртгэлийн ажилтнаар тодорхойлуулна.</td><td>Удаан хугацааны уулзалтын өрөөний нэг хоногийн хураамж 10000 төгрөг байна.</td></tr>
++          <tr><td>3.</td><td>Тоо бүртгэлийн тодорхойлсон эргэлтийн хуудсыг эрх бүхий албан тушаалтнаар цохолт хийлгэж уулзана.</td><td>Удаан хугацааны уулзалт нь 24-72 цагийн хугацаатай ба эргэлтийн хуудсыг албаны дарга болон дэд дарга нар цохолт хийнэ.</td></tr>
++        </tbody>
++      </table>
++
++      <div class="sd-subhead">Үйлчилгээг үзүүлэх мэргэжилтний мэдээлэл</div>
++      <table>
++        <thead><tr><th>№</th><th>Овог, нэр</th><th>Албан тушаал</th><th>Ажлын утас</th></tr></thead>
++        <tbody>
++          <tr><td>1.</td><td>Д.Амартүвшин</td><td>Тоо бүртгэлийн ажилтан</td><td class="mono">99913339</td></tr>
++          <tr><td>2.</td><td>А.Отгонцэцэг</td><td>Тоо бүртгэлийн туслах ажилтан</td><td class="mono">99316765</td></tr>
++        </tbody>
++      </table>
++
++      <div class="sd-row sd-account"><span class="sd-label">УДААН ХУГАЦААНЫ УУЛЗАЛТЫН МӨНГӨ ХИЙХ ДАНС:</span>ТӨРИЙН САН — IBAN-050090 — 100160012002</div>
++    </div>
++
+     <div class="card">
+       <p style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Огноо сонгоод цаг захиална уу. Нэг удаагийн эргэлтэд дээд тал нь 10 хүн бүртгүүлж болно. 10 хүн дүүрмэгц тухайн эргэлт 72 цагийн турш идэвхгүй болно (календарь дээр улаанаар харагдана), дараа нь дараагийн эргэлт автоматаар нээгдэнэ.</p>
+       <label>Огноо сонгох</label>
+@@ -165,7 +198,7 @@
+       </div>
+       <div class="cal-grid" id="calDow"></div>
+       <div class="cal-grid" id="calGrid" style="margin-top:6px"></div>
+-      <div class="hint" style="margin-top:10px">● улаан цэгтэй өдөр = урт хугцааны эргэлтэд одоогоор дүүрсэн огноо</div>
++      <div class="hint" style="margin-top:10px">● улаан цэгтэй өдөр = удаан хугацааны эргэлтэд одоогоор дүүрсэн огноо</div>
+     </div>
+   </div>
+ 
+@@ -183,7 +216,7 @@
+     <div id="adminPanel" class="hidden">
+       <div class="tab-row">
+         <button class="tab active" data-tab="users">Бүртгэлтэй иргэд</button>
+-        <button class="tab" data-tab="lq">Урт хугцааны эргэлт</button>
++        <button class="tab" data-tab="lq">Удаан хугацааны эргэлт</button>
+         <button class="tab" data-tab="fb">Санал хүсэлт</button>
+         <button class="tab" data-tab="news">Мэдээ нэмэх</button>
+       </div>
+diff --git a/frontend/styles.css b/frontend/styles.css
+index e760d1e..58e30c3 100644
+--- a/frontend/styles.css
++++ b/frontend/styles.css
+@@ -195,6 +195,15 @@ tr:hover td{background:var(--paper);}
+ .about-grid{background:var(--paper-dim);border:1px solid var(--line);padding:14px 14px;border-radius:12px;}
+ .about-grid .mono{font-size:12.5px;}
+ 
++/* ---------- service detail card (long-duration meeting info) ---------- */
++.service-detail, .service-detail *{font-family:Arial, Helvetica, sans-serif;}
++.service-detail{margin-bottom:16px;}
++.service-detail .sd-title{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:14px;letter-spacing:.01em;}
++.service-detail .sd-subhead{font-size:13px;font-weight:700;color:var(--navy);margin:16px 0 8px;}
++.service-detail .sd-row{font-size:13.5px;line-height:1.6;color:var(--ink);margin-bottom:10px;}
++.service-detail .sd-label{font-weight:700;color:var(--navy);margin-right:4px;}
++.service-detail .sd-account{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
++
+ /* ---------- leadership card (director photo + message) ---------- */
+ .leader-card{margin-top:16px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+ .leader-photo{

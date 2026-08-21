@@ -195,6 +195,15 @@ tr:hover td{background:var(--paper);}
 .about-grid{background:var(--paper-dim);border:1px solid var(--line);padding:14px 14px;border-radius:12px;}
 .about-grid .mono{font-size:12.5px;}
 
+/* ---------- service detail card (long-duration meeting info) ---------- */
+.service-detail, .service-detail *{font-family:Arial, Helvetica, sans-serif;}
+.service-detail{margin-bottom:16px;}
+.service-detail .sd-title{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:14px;letter-spacing:.01em;}
+.service-detail .sd-subhead{font-size:13px;font-weight:700;color:var(--navy);margin:16px 0 8px;}
+.service-detail .sd-row{font-size:13.5px;line-height:1.6;color:var(--ink);margin-bottom:10px;}
+.service-detail .sd-label{font-weight:700;color:var(--navy);margin-right:4px;}
+.service-detail .sd-account{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
+
 /* ---------- leadership card (director photo + message) ---------- */
 .leader-card{margin-top:16px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
 .leader-photo{
