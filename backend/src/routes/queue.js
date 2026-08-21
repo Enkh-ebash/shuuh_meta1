@@ -5,7 +5,7 @@ const { isValidDate, cleanName, isValidRelation } = require('../util/validate');
 
 const router = express.Router();
 const LOCK_MS = 72 * 60 * 60 * 1000; // 72 hours
-const WAVE_CAPACITY = 10;
+const WAVE_CAPACITY = 1;
 
 // Compute the currently-active wave for a date: the wave people should see/book into.
 // If the latest wave is full and still within its 72h lock, it is returned as 'full'
