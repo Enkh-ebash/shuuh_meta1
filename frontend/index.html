@@ -100,46 +100,6 @@
   <!-- INTRO -->
   <div id="introView" class="hidden">
     <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Танилцуулга</h2></div>
-    <div class="card">
-      <p style="font-size:14px;line-height:1.7;color:var(--ink-soft)">
-      Ховд аймаг дахь Шүүхийн шийдвэр гүйцэтгэх газар нь Шүүхийн шийдвэр гүйцэтгэх ерөнхий газрын харьяа нэгж бөгөөд
-      шүүхийн шийдвэр гүйцэтгэх ажиллагааг хуулийн дагуу, шуурхай, ил тод явуулах үүрэгтэй.
-      Иргэд энэхүү порталаар дамжуулан цаг захиалах, санал хүсэлтээ илгээх, мэдээ мэдээлэлтэй танилцах боломжтой.
-      Дэлгэрэнгүй мэдээллийг байгууллагын байранд эсвэл лавлах утсаар авна уу.</p>
-      <div id="aboutInfo" style="margin-top:16px"></div>
-    </div>
-    <div class="card leader-card">
-      <img class="leader-photo" src="assets/mendee1.jpg" alt="Байгууллагын удирдлага">
-      <div class="leader-text">
-        <div class="eyebrow">Байгууллагын удирдлага</div>
-        <h3>Хэлтсийн даргын мэндчилгээ</h3>
-        <p>Иргэн бүрт ил тод, шуурхай, хүндэтгэлтэй үйлчилгээ үзүүлэхийг зорьж ажилладаг. Энэхүү цахим системээр дамжуулан таны цаг захиалга, санал хүсэлт бүрийг анхааралтай хүлээн авч байгааг мэдэгдэхийг хүсье.</p>
-      </div>
-    </div>
-  </div>
-
-
-  <!-- FEEDBACK -->
-  <div id="feedbackView" class="hidden">
-    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Санал хүсэлт</h2></div>
-    <div class="card">
-      <label>Гарчиг</label>
-      <input id="fbTitle" placeholder="Товч гарчиг">
-      <label>Санал хүсэлтийн агуулга</label>
-      <textarea id="fbBody" rows="5" placeholder="Дэлгэрэнгүй бичнэ үү..."></textarea>
-      <button class="btn-primary" id="fbSubmit">Илгээх</button>
-      <div class="err" id="fbErr"></div>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <div class="section-head" style="margin-bottom:10px"><h2 style="font-size:15px">Миний илгээсэн хүсэлтүүд</h2></div>
-      <div id="myFeedbackList"></div>
-    </div>
-  </div>
-
-  <!-- LONG QUEUE -->
-  <div id="longqueueView" class="hidden">
-    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Удаан хугацааны эргэлт</h2></div>
-
     <div class="card service-detail">
       <h3 class="sd-title">ХОРИХ АНГИЙН ХОРИГДЛЫН УДААН ХУГАЦААНЫ УУЛЗАЛТ</h3>
 
@@ -171,6 +131,39 @@
 
       <div class="sd-row sd-account"><span class="sd-label">УДААН ХУГАЦААНЫ УУЛЗАЛТЫН МӨНГӨ ХИЙХ ДАНС:</span>ТӨРИЙН САН — IBAN-050090 — 100160012002</div>
     </div>
+    <div class="card leader-card">
+      <img class="leader-photo" src="assets/mendee1.jpg" alt="Байгууллагын удирдлага">
+      <div class="leader-text">
+        <div class="eyebrow">Байгууллагын удирдлага</div>
+        <h3>Хэлтсийн даргын мэндчилгээ</h3>
+        <p>Ховд аймаг дахь Шүүхийн шийдвэр гүйцэтгэх газар-457 дугаар нээлттэй, хаалттай хорих анги нь өнөөдрийн байдлаар захиргаа санхүү, харуул хамгаалалт, цагдан хорих байр, хорихоос өөр төрлийн ял эдлүүлэх ажиллагаа хариуцсан тасаг, шийдвэр гүйцэтгэх тасаг гэсэн бүтэц зохион байгуулалттайгаар ажиллаж байна.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- FEEDBACK -->
+  <div id="feedbackView" class="hidden">
+    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Санал хүсэлт</h2></div>
+    <div class="card">
+      <label>Гарчиг</label>
+      <input id="fbTitle" placeholder="Товч гарчиг">
+      <label>Санал хүсэлтийн агуулга</label>
+      <textarea id="fbBody" rows="5" placeholder="Дэлгэрэнгүй бичнэ үү..."></textarea>
+      <button class="btn-primary" id="fbSubmit">Илгээх</button>
+      <div class="err" id="fbErr"></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="section-head" style="margin-bottom:10px"><h2 style="font-size:15px">Миний илгээсэн хүсэлтүүд</h2></div>
+      <div id="myFeedbackList"></div>
+    </div>
+  </div>
+
+  <!-- LONG QUEUE -->
+  <div id="longqueueView" class="hidden">
+    <div class="section-head"><button class="back" data-back>← Буцах</button><h2>Удаан хугацааны эргэлт</h2></div>
+
+    
 
     <div class="card">
       <p style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">Огноо сонгоод цаг захиална уу. Нэг удаагийн эргэлтэд дээд тал нь 10 хүн бүртгүүлж болно. 10 хүн дүүрмэгц тухайн эргэлт 72 цагийн турш идэвхгүй болно (календарь дээр улаанаар харагдана), дараа нь дараагийн эргэлт автоматаар нээгдэнэ.</p>
