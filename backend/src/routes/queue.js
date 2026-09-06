@@ -7,10 +7,6 @@ const router = express.Router();
 const LOCK_MS = 72 * 60 * 60 * 1000; // 72 hours
 const WAVE_CAPACITY = 3;
 
-// Compute the currently-active wave for a date: the wave people should see/book into.
-// If the latest wave is full and still within its 72h lock, it is returned as 'full'
-// (read-only). Once 72h has elapsed since it filled, a fresh (empty) wave is "opened"
-// automatically — no cron job needed, it's computed on read.
 async function getCurrentLongWave(date) {
   const row = await db.prepare('SELECT MAX(wave) as w FROM long_queue WHERE date = ?').get(date);
   const maxWave = row.w || 1;
@@ -49,8 +45,7 @@ router.post('/long/:date', requireAuth, async (req, res) => {
     return res.status(409).json({ error: 'Та энэ ээлжинд аль хэдийн бүртгэлтэй байна.' });
   }
 
-  // Who they're visiting, and the visitor's relation to that prisoner. Both are
-  // required so staff know who to bring forward without asking again in person.
+
   const prisonerOvog = cleanName(req.body.prisonerOvog);
   const prisonerNer = cleanName(req.body.prisonerNer);
   const relationChoice = typeof req.body.relation === 'string' ? req.body.relation.trim() : '';
@@ -78,24 +73,13 @@ router.post('/long/:date', requireAuth, async (req, res) => {
   res.status(201).json(await getCurrentLongWave(date));
 });
 
-// Used by the calendar view to mark which dates are red (long queue is blocked).
-// Rule (UI requirement):
-// If wave at date D is filled at time T0, then dates from D forward (day-by-day)
-// remain red for the next 72 hours. At the exact unlock moment, marking should
-// stop (i.e., D+3 days should turn non-red).
+
+
 router.get('/long-status/:yearMonth', requireAuth, async (req, res) => {
   const { yearMonth } = req.params; // e.g. "2026-07"
   if (!/^\d{4}-\d{2}$/.test(yearMonth)) return res.status(400).json({ error: 'Огноо буруу байна.' });
 
-  // We compute "blocked" intervals based on actual filled waves (wave capacity=10).
-  // For each filled wave row, take:
-  //   start = time when 3rd person booked (max booked_at within that wave)
-  //   lockedUntil = start + LOCK_MS
-  // Then any calendar day whose [dayStart, dayEnd] overlaps the interval [now, lockedUntil)
-  // should be marked red.
 
-  // Query all waves within the month.
-  // Each distinct (date, wave) can be evaluated.
   const waves = await db
     .prepare(
       'SELECT date, wave, COUNT(*) as cnt, MAX(booked_at) as last_booked_at FROM long_queue WHERE date LIKE ? GROUP BY date, wave'
@@ -104,10 +88,6 @@ router.get('/long-status/:yearMonth', requireAuth, async (req, res) => {
 
   const fullDatesSet = new Set();
 
-  // For calendar red-marking we only care about days, not time-of-day.
-  // Rule from UX: if the 3rd booking happens on date D, then D, D+1, D+2
-  // are red; unlock moment at D+3 should stop marking.
-  // Therefore we compute locked day-end as startDay + 3 days (exclusive).
   const now = Date.now();
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
@@ -115,38 +95,25 @@ router.get('/long-status/:yearMonth', requireAuth, async (req, res) => {
   for (const w of waves) {
 
     const cnt = w.cnt || 0;
-    if (cnt < WAVE_CAPACITY) continue; // not filled
+    if (cnt < WAVE_CAPACITY) continue; 
 
     const startBookedAt = w.last_booked_at;
     if (!startBookedAt) continue;
 
     const lockedUntil = startBookedAt + LOCK_MS;
-    if (now >= lockedUntil) continue; // already unlocked
+    if (now >= lockedUntil) continue; 
 
-    // Determine which day strings in this month are blocked by this interval.
-    // We only need to mark from the start date (w.date) onward, but since we only
-    // fetch month candidates, we map by comparing day boundaries.
 
-    // dayStart/dayEnd for candidate days: [00:00, 23:59:59.999]
-    // For each day in month that overlaps [now, lockedUntil), mark red.
     const [yy, mm] = w.date.split('-');
     const year = Number(yy);
     const month = Number(mm);
 
-    // Iterate days from w.date within month of yearMonth.
     const [baseY, baseM] = yearMonth.split('-');
     const baseYear = Number(baseY);
     const baseMonth = Number(baseM);
 
     const baseFirst = new Date(baseYear, baseMonth - 1, 1).getTime();
     const baseLastDay = new Date(baseYear, baseMonth, 0).getDate();
-
-    // Iterate all days in this month and check overlap with [filledAt, lockedUntil).
-    // IMPORTANT (UX rule): If unlock happens exactly at 7/5 00:00, then 7/5 must NOT be red.
-    // So we treat the locked interval as half-open: [filledAt, lockedUntil)
-    // and a day is red iff its interval overlaps that locked interval:
-    //   dayStart < lockedUntil && dayEndExclusive > filledAt
-    // (where dayEndExclusive is next-day 00:00).
     const filledAt = startBookedAt;
 
     for (let d = 1; d <= baseLastDay; d++) {

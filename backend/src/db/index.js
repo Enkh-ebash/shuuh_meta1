@@ -1,27 +1,6 @@
-// Turso (libSQL) — a SQLite-compatible cloud database. Unlike a local SQLite
-// file, this data survives redeploys, restarts, and free-tier host spin-downs,
-// because it lives on Turso's servers rather than the host's local disk.
-//
-// Setup (one-time):
-//   1. Install the CLI and log in:      curl -sSfL https://get.tur.so/install.sh | bash
-//                                        turso auth login
-//   2. Create a database:               turso db create khovd457
-//   3. Get the connection URL:          turso db show khovd457 --url
-//   4. Create an auth token:            turso db tokens create khovd457
-//   5. Put both in your .env (see .env.example):
-//        TURSO_DATABASE_URL=libsql://khovd457-<org>.turso.io
-//        TURSO_AUTH_TOKEN=<token from step 4>
-//
-// Every query here used to be synchronous (node:sqlite's DatabaseSync). Turso
-// is accessed over the network, so every call is now async — prepare(sql).get/
-// .all/.run(...) all return Promises. Call sites must `await` them.
 
 const { createClient } = require('@libsql/client');
 
-// Load .env ourselves — this file is required both by server.js (which
-// already loads dotenv) and by standalone scripts (seedAdmin.js, seedAbout.js,
-// reset-data.js) run directly with `node ...`, which never went through
-// server.js and therefore never loaded .env otherwise.
 require('dotenv').config();
 
 const url = process.env.TURSO_DATABASE_URL;
@@ -35,8 +14,7 @@ if (!url) {
 
 const client = createClient({ url, authToken });
 
-// Thin compatibility layer so call sites keep the familiar
-// db.prepare(sql).get(...) / .all(...) / .run(...) shape — just async now.
+
 function prepare(sql) {
   return {
     get: async (...args) => {

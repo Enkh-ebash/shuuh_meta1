@@ -2,14 +2,8 @@ const express = require('express');
 const db = require('../db');
 const { signUserToken } = require('../util/auth');
 const { isValidRegister, isValidPhone, cleanName } = require('../util/validate');
-
 const router = express.Router();
 
-// POST /api/auth/register-or-login
-// Citizens identify themselves with овог/нэр/регистр/утас. If the register number
-// already exists, the phone number must match (acts as a lightweight identity check).
-// NOTE: for production, replace this with real identity verification (e.g. SMS OTP
-// or an integration with the national civil registry / e-Mongolia API).
 router.post('/register-or-login', async (req, res) => {
   const ovog = cleanName(req.body.ovog);
   const ner = cleanName(req.body.ner);
